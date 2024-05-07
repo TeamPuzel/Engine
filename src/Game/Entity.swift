@@ -1,66 +1,100 @@
 
-class Entity {
-    final weak var floor: Floor?
-    final var position: Position
-    final var name: String?
-    var symbol: Character? { nil }
+public class Entity {
+    public final unowned var floor: Floor
     
-    final var x: Int { position.x }
-    final var y: Int { position.y }
+    public class var baseHealth: Int { 1 }
+    public class var isFlammable: Bool { false }
+    public class var isMovable: Bool { false }
+    public var isMovable: Bool { Self.isMovable }
+    public var isFlammable: Bool { Self.isFlammable }
     
-    init(_ floor: Floor, x: Int = 0, y: Int = 0, name: String? = nil) {
+    public final var maxHealth: Int
+    public final var health: Int
+    
+    public final var position: Position
+    public final var name: String?
+    public var symbol: Character? { nil }
+    
+    public final var x: Int { position.x }
+    public final var y: Int { position.y }
+    
+    public init(_ floor: Floor, x: Int = 0, y: Int = 0, name: String? = nil) {
         self.name = name
         self.floor = floor
         self.position = .init(x: x, y: y)
+        self.maxHealth = Self.baseHealth
+        self.health = Self.baseHealth
     }
     
-    func move(_ direction: Direction) {
-        self.position += direction.relativePosition
+    private func log(_ string: String) {
+        if self === floor.world.player { floor.world.log(string) }
     }
     
-    func useStairs(_ direction: Stairs.Direction) {
-        self.floor!.world!.useStairs(on: self, direction: direction)
+    public func move(_ direction: Direction) {
+        guard Self.isMovable else { log("You are immovable and don't even budge."); return }
+        
+        let newPosition = position + direction.relativePosition
+        
+        guard
+            newPosition.x >= 0 &&
+            newPosition.y >= 0 &&
+            newPosition.x < Floor.size &&
+            newPosition.y < Floor.size
+        else { log("You can't move there."); return }
+        
+        let destinationBlock = floor[newPosition.x, newPosition.y]
+        
+        guard !destinationBlock.isSolid else {
+            log("The \(String(describing: type(of: destinationBlock)).lowercased()) doesn't budge.")
+            return
+        }
+        
+        position = newPosition
     }
     
-    func process(input string: Input) {
+    public func useStairs(_ direction: Block.Stairs.Direction) {
+        floor.world.useStairs(on: self, direction: direction)
+    }
+    
+    public func process(input string: Input) {
         switch string {
             case .up: self.move(.north)
             case .down: self.move(.south)
             case .left: self.move(.west)
             case .right: self.move(.east)
                 
-            case .other("<") where (floor![x, y] as? Stairs)?.direction == .up: self.useStairs(.up)
-            case .other(">") where (floor![x, y] as? Stairs)?.direction == .down: self.useStairs(.down)
+            case .other("<") where (floor[x, y] as? Block.Stairs)?.direction == .up: useStairs(.up)
+            case .other(">") where (floor[x, y] as? Block.Stairs)?.direction == .down: useStairs(.down)
             
             case _: break
         }
     }
     
-    struct Position: Hashable, AdditiveArithmetic {
-        var x, y: Int
+    public struct Position: Hashable, AdditiveArithmetic {
+        public var x, y: Int
         
-        init(x: Int, y: Int) {
+        public init(x: Int, y: Int) {
             self.x = x
             self.y = y
         }
         
-        init() { self = .zero }
+        public init() { self = .zero }
         
-        static var zero: Self { .init(x: 0, y: 0) }
+        public static var zero: Self { .init(x: 0, y: 0) }
         
-        static func + (lhs: Self, rhs: Self) -> Self {
+        public static func + (lhs: Self, rhs: Self) -> Self {
             .init(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
         }
         
-        static func - (lhs: Self, rhs: Self) -> Self {
+        public static func - (lhs: Self, rhs: Self) -> Self {
             .init(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
         }
     }
     
-    enum Direction {
+    public enum Direction {
         case north, south, east, west, northEast, northWest, southEast, southWest
         
-        var relativePosition: Position {
+        public var relativePosition: Position {
             switch self {
                 case .north:     .init(x: 0, y: -1)
                 case .south:     .init(x: 0, y: 1)
@@ -76,10 +110,16 @@ class Entity {
 }
 
 extension Entity: Hashable {
-    static func == (lhs: Entity, rhs: Entity) -> Bool { lhs === rhs }
-    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
+    public static func == (lhs: Entity, rhs: Entity) -> Bool { lhs === rhs }
+    public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
 }
 
-class Human: Entity {
-    override var symbol: Character? { "@" }
+extension Entity {
+    public class Human: Entity {
+        public class override var baseHealth: Int { 4 }
+        public class override var isMovable: Bool { true }
+        public class override var isFlammable: Bool { true }
+        
+        public override var symbol: Character? { "@" }
+    }
 }

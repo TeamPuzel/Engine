@@ -1,88 +1,85 @@
 
-final class Floor {
-    final weak var world: World?
+public class Floor {
+    public final unowned let world: World
     
-    static var side: Int = 32
+    public static var size: Int = 32
     
-    private var blockStorage: [Block]
-    private(set) var entities: Set<Entity> = []
-    final let level: Int
+    private final var blockStorage: [Block]
+    
+    public private(set) var entities: Set<Entity> = []
+    public final let level: Int
 
-    init(world: World, level: Int) {
+    public init(world: World, level: Int) {
         self.world = world
         self.level = level
-        
-        let roomCount = 6...9
-        
-        while true {
-            do throws(GenerationError) {
-                self.blockStorage = .init(repeating: Ground(), count: Self.side * Self.side)
-                
-                do {
-                    let floorBlocks = self.blocks.filter { (_, block) in block is Ground }
-                    guard let ((x, y), _) = floorBlocks.randomElement() else {
-                        throw GenerationError.noSpaceFor(block: Stairs(.up))
-                    }
-                    self[x, y] = Stairs(.up)
-                }
-                
-                do {
-                    let floorBlocks = self.blocks.filter { (_, block) in block is Ground }
-                    guard let ((x, y), _) = floorBlocks.randomElement() else {
-                        throw GenerationError.noSpaceFor(block: Stairs(.down))
-                    }
-                    self[x, y] = Stairs(.down)
-                }
-            } catch {
-                // TODO(!): Log this somewhere
-                continue
-            }
-            
-            break
-        }
+        self.blockStorage = .init(repeating: Block.Air(), count: Self.size * Self.size)
     }
     
-    enum GenerationError: Error {
+    private final func addStairs(_ direction: Block.Stairs.Direction) throws(GenerationError) {
+        let blocks = self.blocks.filter { (_, block) in block is Block.Ground }
+        guard let ((x, y), _) = blocks.randomElement() else {
+            throw GenerationError.noSpaceFor(block: Block.Stairs(direction))
+        }
+        self[x, y] = Block.Stairs(direction)
+    }
+    
+    private enum GenerationError: Error {
         case noSpaceFor(block: Block)
     }
     
-    subscript(x: Int, y: Int) -> Block {
-        get { self.blockStorage[x + y * Self.side] }
-        set { self.blockStorage[x + y * Self.side] = newValue }
+    public final subscript(x: Int, y: Int) -> Block {
+        get { blockStorage[x + y * Self.size] }
+        set { blockStorage[x + y * Self.size] = newValue }
     }
     
-    var blocks: Zip2Sequence<[(x: Int, y: Int)], [Block]> {
+    public final var blocks: Zip2Sequence<[(x: Int, y: Int)], [Block]> {
         var indices: [(x: Int, y: Int)] = []
-        indices.reserveCapacity(Self.side * Self.side)
+        indices.reserveCapacity(Self.size * Self.size)
         
-        for x in 0..<Self.side {
-            for y in 0..<Self.side {
+        for x in 0..<Self.size {
+            for y in 0..<Self.size {
                 indices.append((y, x))
             }
         }
         
-        return zip(indices, self.blockStorage)
+        return zip(indices, blockStorage)
     }
     
-    func addEntity(_ entity: Entity) {
+    public final func addEntity(_ entity: Entity) {
         entity.floor = self
         self.entities.insert(entity)
     }
     
-    func removeEntity(_ entity: Entity) {
-        guard self.entities.remove(entity) != nil else { return }
-        entity.floor = nil
+    public final func removeEntity(_ entity: Entity) {
+        guard entities.remove(entity) != nil else { return }
     }
     
-    func draw(to renderer: Renderer) {
-        for x in 0..<Self.side {
-            for y in 0..<Self.side {
+    public final func draw(to renderer: Renderer) {
+        for x in 0..<Self.size {
+            for y in 0..<Self.size {
                 if let symbol = self[x, y].symbol { renderer.put(symbol, x: x, y: y) }
             }
         }
         
         for entity in self.entities {
             if let symbol = entity.symbol { renderer.put(symbol, x: entity.x, y: entity.y) }
+        }
+    }
+    
+    public final class Empty: Floor {
+        public override init(world: World, level: Int) {
+            super.init(world: world, level: level)
+            self.blockStorage = .init(repeating: Block.Ground(), count: Self.size * Self.size)
+            
+            self[3, 3] = Block.Wall()
+            
+            while true {
+                if (try? self.addStairs(.up)) != nil { break }
+            }
+            
+            while true {
+                if (try? self.addStairs(.down)) != nil { break }
+            }
         }
     }
 }

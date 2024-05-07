@@ -2,42 +2,40 @@
 import Darwin.ncurses
 
 @main
-enum Main {
+struct Main {
     static func main() {
         let window = initscr()!
         defer { endwin() }
         
+        curs_set(0)
         noecho()
-        defer { echo() }
         cbreak()
-        defer { nocbreak() }
         keypad(window, true)
-        defer { keypad(window, false) }
         
         let renderer = Renderer(window: window)
         let world = World()
         
-        clear()
-        world.tick(input: .none)
-        world.draw(to: renderer)
-        refresh()
+        do {
+            clear()
+            world.tick(input: Input("."))
+            world.draw(to: renderer)
+            refresh()
+        }
         
         while true {
             let input = wgetch(window)
             clear()
-            world.tick(input: Input(from: input))
+            world.tick(input: Input(input))
             world.draw(to: renderer)
             refresh()
         }
     }
 }
 
-enum Input {
-    case up, down, left, right
-    case other(Character)
-    case none
+public enum Input {
+    case up, down, left, right, other(Character)
     
-    init(from raw: Int32) {
+    public init(_ raw: Int32) {
         self = switch raw {
             case KEY_UP: .up
             case KEY_DOWN: .down
@@ -46,16 +44,18 @@ enum Input {
             case _: .other(Character(Unicode.Scalar(UInt32(bitPattern: raw))!))
         }
     }
+    
+    public init(_ character: Character) {
+        self = .other(character)
+    }
 }
 
-final class Renderer {
+public final class _Renderer {
     private let window: OpaquePointer
     
-    init(window: OpaquePointer) {
-        self.window = window
-    }
+    public init(window: OpaquePointer) { self.window = window }
     
-    func put(_ string: String, x: Int, y: Int) {
+    public func put(_ string: String, x: Int, y: Int) {
         guard x >= 0 && y >= 0 else { return }
         
         move(Int32(y), Int32(x))
@@ -64,7 +64,5 @@ final class Renderer {
         }
     }
     
-    func put(_ character: Character, x: Int, y: Int) {
-        self.put(String(character), x: x, y: y)
-    }
+    public func put(_ character: Character, x: Int, y: Int) { put(String(character), x: x, y: y) }
 }
