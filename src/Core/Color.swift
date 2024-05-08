@@ -37,6 +37,10 @@ public extension Color {
     init(_ other: some Color) {
         self.init(r: other.r, g: other.g, b: other.b, a: other.a)
     }
+    
+    static func == (lhs: Self, rhs: some Color) -> Bool {
+        lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a
+    }
 }
 
 // TODO(?): How to make palettes generic? I can only think of a way that would abuse function

@@ -22,7 +22,7 @@ public struct UnsafeTGAPointer: Drawable {
     public subscript(x: Int, y: Int) -> BGRA { data[x + y * width] }
 }
 
-public struct _UnsafeTGA: Drawable {
+public struct UnsafeTGA: Drawable {
     private let data: [UInt8]
     
     public init(_ data: [UInt8]) { self.data = data }

@@ -53,11 +53,11 @@ public final class World: State {
             renderer.draw(entity.sprite, x: entity.x * 16, y: entity.y * 16)
         }
         
-        renderer.text("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32 * 16, font: .dwarf)
-        renderer.text("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33 * 16, font: .dwarf)
+        renderer.text("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32 * 16)
+        renderer.text("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33 * 16)
         
         for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
-            renderer.text(entry.message, x: 33 * 16, y: index * 16, font: .dwarf)
+            renderer.text(entry.message, x: 33 * 16, y: index * 16)
         }
         
         renderer.draw(Images.UI.cursor, x: mouse.x - 1, y: mouse.y - 1)
