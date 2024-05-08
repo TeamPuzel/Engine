@@ -8,7 +8,8 @@ public final class World {
     public init() {
         for level in 0...14 {
             switch level {
-                case 0...14: floors.append(Floor.Empty(world: self, level: level))
+                case 0...3: floors.append(Floor.Basement(world: self, level: level))
+                case 4...14: floors.append(Floor.Empty(world: self, level: level))
                 case _: fatalError()
             }
         }
@@ -35,14 +36,14 @@ public final class World {
         turn += 1
     }
     
-    public func draw(to renderer: Renderer) {
-        player.floor.draw(to: renderer)
+    public func draw(into renderer: inout TextRenderer) {
+        player.floor.draw(into: &renderer)
         
-        renderer.put("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32)
-        renderer.put("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33)
+        renderer.draw("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32)
+        renderer.draw("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33)
         
         for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
-            renderer.put(entry.message, x: 33, y: index)
+            renderer.draw(entry.message, x: 33, y: index)
         }
     }
     
@@ -62,19 +63,19 @@ public final class World {
         entity.position = .init(x: x, y: y)
         newFloor.addEntity(entity)
     }
-}
-
-public struct Log {
-    public private(set) var entries: [Entry] = []
-    public init() {}
     
-    public mutating func write(turn: Int, _ message: String) {
-        entries.append(.init(turn: turn, message: message))
-    }
-    
-    public struct Entry: CustomStringConvertible {
-        public let turn: Int
-        public let message: String
-        public var description: String { "Turn \(turn): \(message)" }
+    public struct Log {
+        public private(set) var entries: [Entry] = []
+        public init() {}
+        
+        public mutating func write(turn: Int, _ message: String) {
+            entries.append(.init(turn: turn, message: message))
+        }
+        
+        public struct Entry: CustomStringConvertible {
+            public let turn: Int
+            public let message: String
+            public var description: String { "Turn \(turn): \(message)" }
+        }
     }
 }

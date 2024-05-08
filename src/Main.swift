@@ -12,22 +12,26 @@ struct Main {
         cbreak()
         keypad(window, true)
         
-        let renderer = Renderer(window: window)
+        let (w, h) = (Int(getmaxx(window)), Int(getmaxy(window)))
+        var renderer = TextRenderer(width: w, height: h)
+        
         let world = World()
         
         do {
-            clear()
             world.tick(input: Input("."))
-            world.draw(to: renderer)
-            refresh()
+            world.draw(into: &renderer)
+            cursesSubmit(renderer, to: window)
         }
         
         while true {
+            let (w, h) = (Int(getmaxx(window)), Int(getmaxy(window)))
+            renderer.resize(width: w, height: h)
+            
             let input = wgetch(window)
-            clear()
             world.tick(input: Input(input))
-            world.draw(to: renderer)
-            refresh()
+            world.draw(into: &renderer)
+            
+            cursesSubmit(renderer, to: window)
         }
     }
 }
@@ -50,19 +54,15 @@ public enum Input {
     }
 }
 
-public final class _Renderer {
-    private let window: OpaquePointer
-    
-    public init(window: OpaquePointer) { self.window = window }
-    
-    public func put(_ string: String, x: Int, y: Int) {
-        guard x >= 0 && y >= 0 else { return }
-        
-        move(Int32(y), Int32(x))
-        withVaList([]) { args in
-            _ = vw_printw(window, string, args)
+fileprivate func cursesSubmit(_ renderer: borrowing TextRenderer, to window: OpaquePointer) {
+    clear()
+    for x in 0..<renderer.target.width {
+        for y in 0..<renderer.target.height {
+            move(Int32(y), Int32(x))
+            withVaList([]) { args in
+                _ = vw_printw(window, String(renderer.target[x, y]), args)
+            }
         }
     }
-    
-    public func put(_ character: Character, x: Int, y: Int) { put(String(character), x: x, y: y) }
+    refresh()
 }

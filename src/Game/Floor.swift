@@ -2,7 +2,7 @@
 public class Floor {
     public final unowned let world: World
     
-    public static var size: Int = 32
+    public static let size: Int = 32
     
     private final var blockStorage: [Block]
     
@@ -54,10 +54,10 @@ public class Floor {
         guard entities.remove(entity) != nil else { return }
     }
     
-    public final func draw(to renderer: Renderer) {
+    public final func draw(into renderer: inout TextRenderer) {
         for x in 0..<Self.size {
             for y in 0..<Self.size {
-                if let symbol = self[x, y].symbol { renderer.put(symbol, x: x, y: y) }
+                renderer.put(self[x, y].symbol, x: x, y: y)
             }
         }
         
@@ -72,6 +72,52 @@ public class Floor {
             self.blockStorage = .init(repeating: Block.Ground(), count: Self.size * Self.size)
             
             self[3, 3] = Block.Wall()
+            
+            while true {
+                if (try? self.addStairs(.up)) != nil { break }
+            }
+            
+            while true {
+                if (try? self.addStairs(.down)) != nil { break }
+            }
+        }
+    }
+    
+    public final class Basement: Floor {
+        public override init(world: World, level: Int) {
+            super.init(world: world, level: level)
+            
+            let targetRoomCount = Int.random(in: 6...9)
+            var roomCount = 0
+            
+        room:
+            while roomCount < targetRoomCount {
+                let x = Int.random(in: 1..<Self.size)
+                let y = Int.random(in: 1..<Self.size)
+                let width = Int.random(in: 3...8)
+                let height = Int.random(in: 3...8)
+                
+                guard x + width < Self.size - 1 && y + height < Self.size - 1 else { continue room }
+                for ix in x...(x + width) {
+                    for iy in y...(y + height) {
+                        guard self[ix, iy] is Block.Air else { continue room }
+                    }
+                }
+                
+                for ix in (x - 1)...(x + width + 1) {
+                    for iy in (y - 1)...(y + height + 1) {
+                        self[ix, iy] = Block.Wall()
+                    }
+                }
+                
+                for ix in x...(x + width) {
+                    for iy in y...(y + height) {
+                        self[ix, iy] = Block.Ground()
+                    }
+                }
+                
+                roomCount += 1
+            }
             
             while true {
                 if (try? self.addStairs(.up)) != nil { break }
