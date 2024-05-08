@@ -8,7 +8,7 @@ public class Block {
     public class var isSolid: Bool { false }
     public var isSolid: Bool { Self.isSolid }
     
-    public var sprite: any Drawable { EmptyDrawable<RGBA>() }
+    public var sprite: any Drawable { EmptyDrawable() }
     
     public class Air: Block {
         

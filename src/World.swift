@@ -42,7 +42,7 @@ public final class World: State {
     }
     
     public func draw(into renderer: inout Renderer) {
-        renderer.clear(with: RGBA.black)
+        renderer.clear(with: .black)
         for x in 0..<Floor.size {
             for y in 0..<Floor.size {
                 renderer.draw(player.floor[x, y].sprite, x: x * 16, y: y * 16)

@@ -82,7 +82,7 @@ public extension State {
             
             SDL_UpdateTexture(
                 sdlTexture, nil, renderer.display.data,
-                Int32(MemoryLayout<Renderer.Layout>.stride * renderer.display.width)
+                Int32(MemoryLayout<Color>.stride * renderer.display.width)
             )
             
             

@@ -12,7 +12,7 @@
 /// misuse as copying this could be very expensive and cause large cyclic allocations.
 /// There is time to figure this out as it's impossible without move only generics anyway.
 public struct Renderer/*: ~Copyable */{
-    internal var display: Image<RGBA>
+    internal var display: Image
     
     public var width: Int { self.display.width }
     public var height: Int { self.display.height }
@@ -28,7 +28,7 @@ public struct Renderer/*: ~Copyable */{
         return true
     }
     
-    public mutating func clear(with color: some Color = RGBA.black) {
+    public mutating func clear(with color: Color = .black) {
         for x in 0..<self.display.width {
             for y in 0..<self.display.height {
                 self.pixel(x: x, y: y, color: color)
@@ -36,9 +36,9 @@ public struct Renderer/*: ~Copyable */{
         }
     }
     
-    public mutating func pixel(x: Int, y: Int, color: some Color = RGBA.white) {
+    public mutating func pixel(x: Int, y: Int, color: Color = .white) {
         if x < 0 || y < 0 || x >= display.width || y >= display.height { return }
-        self.display[x, y] = .init(color)
+        self.display[x, y] = color
     }
     
     public mutating func draw(_ drawable: some Drawable, x: Int, y: Int) {
@@ -66,7 +66,7 @@ public struct Renderer/*: ~Copyable */{
         }
     }
     
-    public mutating func rectangle(x: Int, y: Int, w: Int, h: Int, color: some Color = RGBA.white, fill: Bool = false) {
+    public mutating func rectangle(x: Int, y: Int, w: Int, h: Int, color: Color = .white, fill: Bool = false) {
         for ix in 0..<w {
             for iy in 0..<h {
                 if ix + x == x || ix + x == x + w - 1 || iy + y == y || iy + y == y + h - 1 || fill {
@@ -76,15 +76,15 @@ public struct Renderer/*: ~Copyable */{
         }
     }
     
-    public mutating func circle(x: Int, y: Int, r: Int, color: some Color = RGBA.white, fill: Bool = false) {
+    public mutating func circle(x: Int, y: Int, r: Int, color: Color = .white, fill: Bool = false) {
         guard r >= 0 else { return }
         for ix in (x - r)..<(x + r + 1) {
             for iy in (y - r)..<(y + r + 1) {
                 let distance = Int(Double(((ix - x) * (ix - x)) + ((iy - y) * (iy - y))).squareRoot().rounded())
                 if fill {
-                    if distance <= r { pixel(x: ix, y: iy, color: color) }
+                    if distance <= r { self.pixel(x: ix, y: iy, color: color) }
                 } else {
-                    if distance == r { pixel(x: ix, y: iy, color: color) }
+                    if distance == r { self.pixel(x: ix, y: iy, color: color) }
                 }
             }
         }
@@ -93,13 +93,13 @@ public struct Renderer/*: ~Copyable */{
     public mutating func text(
         _ string: String,
         x: Int, y: Int,
-        color: some Color = RGBA.white,
+        color: Color = .white,
         font: TileFont<some Drawable> = Fonts.pico
     ) {
         for (i, char) in string.enumerated() {
             if let symbol = font[char] {
                 self.draw(
-                    symbol.colorMap(.init(RGBA.white), to: color),
+                    symbol.colorMap(.white, to: color),
                     x: x + (i * symbol.width + i * font.spacing),
                     y: y
                 )
@@ -111,14 +111,13 @@ public struct Renderer/*: ~Copyable */{
 // Technically `Renderer` is a `Drawable`, so it could be trivially used to for example
 // color map the entire screen by rendering a `ColorMap` of itself.
 extension Renderer: Drawable {
-    public subscript(x: Int, y: Int) -> RGBA { self.display[x, y] }
+    public subscript(x: Int, y: Int) -> Color { self.display[x, y] }
 }
 
-public protocol Drawable<Layout>: Equatable {
-    associatedtype Layout: Color
+public protocol Drawable: Equatable {
     var width: Int { get }
     var height: Int { get }
-    subscript(x: Int, y: Int) -> Layout { get }
+    subscript(x: Int, y: Int) -> Color { get }
 }
 
 public extension Drawable {
@@ -130,15 +129,15 @@ public extension Drawable {
         .init(self, itemWidth: itemWidth, itemHeight: itemHeight)
     }
     
-    func colorMap<C: Color>(map: @escaping (Self.Layout) -> C) -> ColorMap<Self, C> { .init(self, map: map) }
+    func colorMap(map: @escaping (Color) -> Color) -> ColorMap<Self> { .init(self, map: map) }
     
-    func colorMap<C: Color>(_ existing: Self.Layout, to new: C) -> ColorMap<Self, C> {
-        self.colorMap { $0 == existing ? new : .init($0) }
+    func colorMap(_ existing: Color, to new: Color) -> ColorMap<Self> {
+        self.colorMap { $0 == existing ? new : $0 }
     }
     
     /// Shorthand for flattening a nested structure of lazy drawables into a trivial image, for
     /// cases where using memory and losing information is preferable to repeatedly recomputing all layers.
-    func flatten() -> Image<Layout> { .init(self) }
+    func flatten() -> Image { .init(self) }
 }
 
 public extension Drawable {
@@ -163,10 +162,10 @@ public extension Drawable {
     }
 }
 
-public struct EmptyDrawable<Layout: Color>: Drawable {
+public struct EmptyDrawable: Drawable {
     public var width: Int { 0 }
     public var height: Int { 0 }
-    public subscript(x: Int, y: Int) -> Layout { fatalError() }
+    public subscript(x: Int, y: Int) -> Color { fatalError() }
 }
 
 /// A lazy 2d slice of another abstract `Drawable`, and a `Drawable` in itself.
@@ -186,7 +185,7 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
         self.inner = inner
     }
     
-    public subscript(x: Int, y: Int) -> Inner.Layout { inner[x + self.x, y + self.y] }
+    public subscript(x: Int, y: Int) -> Color { inner[x + self.x, y + self.y] }
 }
 
 /// A lazy grid of equal size `Drawable` slices, for example a sprite sheet, tile map or tile font.
@@ -203,33 +202,36 @@ public struct DrawableGrid<Inner: Drawable>: Drawable {
         self.itemHeight = itemHeight
     }
     
-    public subscript(x: Int, y: Int) -> Inner.Layout { inner[x, y] }
+    public subscript(x: Int, y: Int) -> Color { inner[x, y] }
     public subscript(x: Int, y: Int) -> DrawableSlice<Inner> {
         inner.slice(x: x * itemWidth, y: y * itemHeight, width: itemWidth, height: itemHeight)
     }
 }
 
 /// A lazy wrapper around a drawable, applies a map function to every color it yields.
-public struct ColorMap<Inner: Drawable, C: Color>: Drawable {
+public struct ColorMap<Inner: Drawable>: Drawable {
     public let inner: Inner
-    private let map: (Inner.Layout) -> C
+    private let map: (Color) -> Color
     public var width: Int { inner.width }
     public var height: Int { inner.height }
     
-    init(_ inner: Inner, map: @escaping (Inner.Layout) -> C) {
+    init(_ inner: Inner, map: @escaping (Color) -> Color) {
         self.inner = inner
         self.map = map
     }
     
-    public subscript(x: Int, y: Int) -> C { map(inner[x, y]) }
+    public subscript(x: Int, y: Int) -> Color { map(inner[x, y]) }
 }
 
 // TODO(!): This should be a `TileFont`. Use `Font` for a generic font protocol describing only
 //          the mapping of characters to abstract drawables.
-public struct TileFont<Source: Drawable> {
+public struct TileFont<Source: Drawable>: Drawable {
     public let inner: DrawableGrid<Source>
     public let map: (Character) -> (x: Int, y: Int)?
     public let spacing: Int
+    
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
     
     public init(
         source: Source,
@@ -250,6 +252,8 @@ public struct TileFont<Source: Drawable> {
             return nil
         }
     }
+    
+    public subscript(x: Int, y: Int) -> Color { inner[x, y] }
 }
 
 import Assets

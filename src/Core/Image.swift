@@ -1,18 +1,18 @@
 
-public struct Image<Layout: Color>: Drawable {
-    public private(set) var data: [Layout]
+public struct Image: Drawable {
+    public private(set) var data: [Color]
     public let width, height: Int
     
-    public init(width: Int, height: Int, color: Layout = RGBA.clear) {
+    public init(width: Int, height: Int, color: Color = .clear) {
         self.width = width
         self.height = height
         self.data = .init(repeating: color, count: width * height)
     }
     
-    public init(_ drawable: some Drawable<Layout>) {
+    public init(_ drawable: some Drawable) {
         self.width = drawable.width
         self.height = drawable.height
-        self.data = .init(repeating: Layout.init(r: 0, g: 0, b: 0, a: 0), count: width * height)
+        self.data = .init(repeating: .clear, count: width * height)
         self.data.reserveCapacity(self.width * self.height)
         for x in 0..<self.width {
             for y in 0..<self.height {
@@ -21,16 +21,14 @@ public struct Image<Layout: Color>: Drawable {
         }
     }
     
-    public subscript(x: Int, y: Int) -> Layout {
+    public subscript(x: Int, y: Int) -> Color {
         get { data[x + y * width] }
         set { data[x + y * width] = newValue }
     }
 }
 
 extension Image: ExpressibleByArrayLiteral {
-    public typealias ArrayLiteralElement = [Layout]
-    
-    public init(arrayLiteral elements: [Layout]...) {
+    public init(arrayLiteral elements: [Color]...) {
         self.width = elements[0].count
         self.height = elements.count
         self.data = .init(elements.joined())
@@ -39,7 +37,7 @@ extension Image: ExpressibleByArrayLiteral {
 
 public enum Images {
     public enum UI {
-        public static let cursor: Image<RGBA> = [
+        public static let cursor: Image = [
             [.clear, .black, .clear, .clear, .clear, .clear],
             [.black, .white, .black, .clear, .clear, .clear],
             [.black, .white, .white, .black, .clear, .clear],

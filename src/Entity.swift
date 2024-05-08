@@ -20,7 +20,7 @@ public class Entity {
     public final var position: Position
     public final var name: String?
     
-    public var sprite: any Drawable { EmptyDrawable<RGBA>() }
+    public var sprite: any Drawable { EmptyDrawable() }
     
     public final var x: Int { position.x }
     public final var y: Int { position.y }
