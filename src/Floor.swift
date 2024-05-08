@@ -90,17 +90,16 @@ public class Floor {
             let targetRoomCount = Int.random(in: 6...9)
             var roomCount = 0
             
-        room:
-            while roomCount < targetRoomCount {
+            roomGeneration: while roomCount < targetRoomCount {
                 let x = Int.random(in: 1..<Self.size)
                 let y = Int.random(in: 1..<Self.size)
                 let width = Int.random(in: 3...8)
                 let height = Int.random(in: 3...8)
                 
-                guard x + width < Self.size - 1 && y + height < Self.size - 1 else { continue room }
+                guard x + width < Self.size - 1 && y + height < Self.size - 1 else { continue roomGeneration }
                 for ix in x...(x + width) {
                     for iy in y...(y + height) {
-                        guard self[ix, iy] is Block.Air else { continue room }
+                        guard self[ix, iy] is Block.Air else { continue roomGeneration }
                     }
                 }
                 

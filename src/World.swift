@@ -1,5 +1,6 @@
 
-public final class World {
+@main
+public final class World: State {
     public private(set) var floors: [Floor] = []
     public private(set) var player: Entity!
     public private(set) var turn: Int = 0
@@ -26,26 +27,34 @@ public final class World {
     
     public func log(_ string: String) { log.write(turn: turn, string) }
     
-    public func tick(input: Input) {
-        player.process(input: input)
+    public func update(input: borrowing Input) {
         
-        for entity in player.floor.entities {
-            _ = entity
-        }
-        
-        turn += 1
     }
     
-    public func draw(into renderer: inout TextRenderer) {
-        player.floor.draw(into: &renderer)
+    public func draw(into renderer: inout Renderer) {
         
-        renderer.draw("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32)
-        renderer.draw("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33)
-        
-        for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
-            renderer.draw(entry.message, x: 33, y: index)
-        }
     }
+    
+//    public func tick(input: Input) {
+//        player.process(input: input)
+//        
+//        for entity in player.floor.entities {
+//            _ = entity
+//        }
+//        
+//        turn += 1
+//    }
+//    
+//    public func draw(into renderer: inout TextRenderer) {
+//        player.floor.draw(into: &renderer)
+//        
+//        renderer.draw("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32)
+//        renderer.draw("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33)
+//        
+//        for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
+//            renderer.draw(entry.message, x: 33, y: index)
+//        }
+//    }
     
     public func useStairs(on entity: Entity, direction: Block.Stairs.Direction) {
         let level = entity.floor.level
