@@ -1,6 +1,12 @@
 
+import Assets
+
 public class Entity {
     public final unowned var floor: Floor
+    
+    public static let sheet = UnsafeTGAPointer(SHEET_TGA_PTR)
+        .flatten()
+        .grid(itemWidth: 16, itemHeight: 16)
     
     public class var baseHealth: Int { 1 }
     public class var isFlammable: Bool { false }
@@ -13,7 +19,8 @@ public class Entity {
     
     public final var position: Position
     public final var name: String?
-    public var symbol: Character? { nil }
+    
+    public var sprite: any Drawable { EmptyDrawable<RGBA>() }
     
     public final var x: Int { position.x }
     public final var y: Int { position.y }
@@ -56,18 +63,18 @@ public class Entity {
         floor.world.useStairs(on: self, direction: direction)
     }
     
-    public func process(input string: Input) {
-        switch string {
-            case .up: self.move(.north)
-            case .down: self.move(.south)
-            case .left: self.move(.west)
-            case .right: self.move(.east)
-                
-            case .other("<") where (floor[x, y] as? Block.Stairs)?.direction == .up: useStairs(.up)
-            case .other(">") where (floor[x, y] as? Block.Stairs)?.direction == .down: useStairs(.down)
-            
-            case _: break
-        }
+    public func process(input: Input) {
+//        switch input {
+//            case : self.move(.north)
+//            case .down: self.move(.south)
+//            case .left: self.move(.west)
+//            case .right: self.move(.east)
+//                
+//            case .other("<") where (floor[x, y] as? Block.Stairs)?.direction == .up: useStairs(.up)
+//            case .other(">") where (floor[x, y] as? Block.Stairs)?.direction == .down: useStairs(.down)
+//            
+//            case _: break
+//        }
     }
     
     public struct Position: Hashable, AdditiveArithmetic {
@@ -120,6 +127,6 @@ extension Entity {
         public class override var isMovable: Bool { true }
         public class override var isFlammable: Bool { true }
         
-        public override var symbol: Character? { "@" }
+        public override var sprite: any Drawable { Self.sheet[0, 1] }
     }
 }

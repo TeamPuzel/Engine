@@ -12,7 +12,7 @@ public struct Image<Layout: Color>: Drawable {
     public init(_ drawable: some Drawable<Layout>) {
         self.width = drawable.width
         self.height = drawable.height
-        self.data = .init()
+        self.data = .init(repeating: Layout.init(r: 0, g: 0, b: 0, a: 0), count: width * height)
         self.data.reserveCapacity(self.width * self.height)
         for x in 0..<self.width {
             for y in 0..<self.height {

@@ -54,18 +54,6 @@ public class Floor {
         guard entities.remove(entity) != nil else { return }
     }
     
-    public final func draw(into renderer: inout TextRenderer) {
-        for x in 0..<Self.size {
-            for y in 0..<Self.size {
-                renderer.put(self[x, y].symbol, x: x, y: y)
-            }
-        }
-        
-        for entity in self.entities {
-            if let symbol = entity.symbol { renderer.put(symbol, x: entity.x, y: entity.y) }
-        }
-    }
-    
     public final class Empty: Floor {
         public override init(world: World, level: Int) {
             super.init(world: world, level: level)

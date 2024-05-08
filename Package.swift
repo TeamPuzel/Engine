@@ -6,7 +6,8 @@ let package = Package(
     name: "Rogue",
     platforms: [.macOS(.v14)],
     targets: [
-        .systemLibrary(name: "SDL", path: "sys"),
-        .executableTarget(name: "Rogue", dependencies: ["SDL"], path: "src")
+        .target(name: "Assets", path: "assets/module"),
+        .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
+        .executableTarget(name: "Rogue", dependencies: ["SDL", "Assets"], path: "src")
     ]
 )

@@ -6,6 +6,8 @@ public final class World: State {
     public private(set) var turn: Int = 0
     private var log: Log = .init()
     
+    private var mouse: (x: Int, y: Int) = (0, 0)
+    
     public init() {
         for level in 0...14 {
             switch level {
@@ -28,33 +30,38 @@ public final class World: State {
     public func log(_ string: String) { log.write(turn: turn, string) }
     
     public func update(input: borrowing Input) {
+        mouse = input.mouse
         
+        player.process(input: input)
+        
+        for entity in player.floor.entities {
+            _ = entity
+        }
+        
+        turn += 1
     }
     
     public func draw(into renderer: inout Renderer) {
+        renderer.clear(with: RGBA.black)
+        for x in 0..<Floor.size {
+            for y in 0..<Floor.size {
+                renderer.draw(player.floor[x, y].sprite, x: x * 16, y: y * 16)
+            }
+        }
         
+        for entity in player.floor.entities {
+            renderer.draw(entity.sprite, x: entity.x * 16, y: entity.y * 16)
+        }
+        
+        renderer.text("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32 * 16, font: .dwarf)
+        renderer.text("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33 * 16, font: .dwarf)
+        
+        for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
+            renderer.text(entry.message, x: 33 * 16, y: index * 16, font: .dwarf)
+        }
+        
+        renderer.draw(Images.UI.cursor, x: mouse.x - 1, y: mouse.y - 1)
     }
-    
-//    public func tick(input: Input) {
-//        player.process(input: input)
-//        
-//        for entity in player.floor.entities {
-//            _ = entity
-//        }
-//        
-//        turn += 1
-//    }
-//    
-//    public func draw(into renderer: inout TextRenderer) {
-//        player.floor.draw(into: &renderer)
-//        
-//        renderer.draw("\(player.name ?? "Anonymous"), \(type(of: player!))", x: 0, y: 32)
-//        renderer.draw("Floor: \(-1 - player.floor.level) Health: \(player.health)/\(player.maxHealth)", x: 0, y: 33)
-//        
-//        for (index, entry) in log.entries[max(0, log.entries.count - 32)...].enumerated() {
-//            renderer.draw(entry.message, x: 33, y: index)
-//        }
-//    }
     
     public func useStairs(on entity: Entity, direction: Block.Stairs.Direction) {
         let level = entity.floor.level
