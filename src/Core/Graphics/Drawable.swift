@@ -163,10 +163,3 @@ public struct Text: Drawable {
     
     public subscript(x: Int, y: Int) -> Color { image[x, y] }
 }
-
-@resultBuilder
-public struct DrawableBuilder {
-    public static func buildBlock<each D: Drawable>(_ drawables: repeat each D) -> (repeat each D) {
-        (repeat each drawables)
-    }
-}

@@ -24,15 +24,20 @@ public final class World: Game {
     
     public func draw(into image: inout Image) {
         image.clear()
-        image.draw(interface, x: 0, y: 0)
+        image.draw(interface, x: 2, y: 2)
         image.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
     }
     
     private var interface: some Drawable {
-        VStack {
+        VStack(alignment: .leading, spacing: 2) {
             Text("Count: \(1 + mouse.x / 3)")
-            VStack(iterating: 0...max(0, mouse.x / 3)) { index in
-                cursor
+            HStack {
+                for i in 0...max(0, mouse.x / 3) {
+                    Text("\(i)")
+                }
+            }
+            if mouse.x > 100 {
+                Text("Wow")
             }
         }
     }
