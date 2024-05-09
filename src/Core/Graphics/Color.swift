@@ -17,23 +17,8 @@ public struct Color: Equatable {
     }
     
     public static let clear = Self(r: 0, g: 0, b: 0, a: 0)
-    
-    public static let black      = Pico.black
-    public static let darkBlue   = Pico.darkBlue
-    public static let darkPurple = Pico.darkPurple
-    public static let darkGreen  = Pico.darkGreen
-    public static let brown      = Pico.brown
-    public static let darkGray   = Pico.darkGray
-    public static let lightGray  = Pico.lightGray
-    public static let white      = Pico.white
-    public static let red        = Pico.red
-    public static let orange     = Pico.orange
-    public static let yellow     = Pico.yellow
-    public static let green      = Pico.green
-    public static let blue       = Pico.blue
-    public static let lavender   = Pico.lavender
-    public static let pink       = Pico.pink
-    public static let peach      = Pico.peach
+    public static let black = Self(luminosity: 0)
+    public static let white = Self(luminosity: 255)
     
     public enum Strawberry {
         public static let red    = Color(r: 214, g: 95,  b: 118)

@@ -1,5 +1,5 @@
 
-public struct Image: Drawable {
+public struct Image: MutableDrawable {
     public private(set) var data: [Color]
     public let width, height: Int
     
@@ -19,6 +19,14 @@ public struct Image: Drawable {
                 self[x, y] = drawable[x, y]
             }
         }
+    }
+    
+    mutating func resize(width: Int, height: Int) -> Bool {
+        guard width != self.width || height != self.height else { return false }
+        var new = Image(width: width, height: height)
+        new.draw(self, x: 0, y: 0)
+        self = new
+        return true
     }
     
     public subscript(x: Int, y: Int) -> Color {

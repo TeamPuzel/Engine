@@ -2,20 +2,20 @@
 import SDL
 
 /// A target independent game that can be run by a runtime for any platform.
-public protocol State {
+public protocol Game {
     init() throws
     // TODO(!!): Not actually called reliably. Make this framerate independed like the Rust version.
     /// Called reliably every tick.
     mutating func update(input: borrowing Input) throws
     /// Called every frame, does not guarantee timing and can even be skipped.
-    mutating func draw(into renderer: inout Renderer) throws
+    mutating func draw(into image: inout Image) throws
 }
 
-fileprivate let minimumWidth = 200
-fileprivate let minimumHeight = 150
+fileprivate let minimumWidth = 600
+fileprivate let minimumHeight = 400
 fileprivate let pixelScale = 2
 
-public extension State {
+public extension Game {
     static func main() throws {
         guard SDL_Init(SDL_INIT_VIDEO) == 0 else { throw GameError.initializingSDL }
         defer { SDL_Quit() }
@@ -48,7 +48,7 @@ public extension State {
         defer { SDL_DestroyTexture(sdlTexture) }
         
         var instance = try Self()
-        var renderer = Renderer(width: minimumWidth, height: minimumHeight)
+        var renderer = Image(width: minimumWidth, height: minimumHeight)
         
         var event = SDL_Event()
         
@@ -72,7 +72,7 @@ public extension State {
                 guard let newTexture = SDL_CreateTexture(
                     sdlRenderer,
                     SDL_PIXELFORMAT_RGBA32.rawValue, Int32(SDL_TEXTUREACCESS_STREAMING.rawValue),
-                    Int32(renderer.display.width), Int32(renderer.display.height)
+                    Int32(renderer.width), Int32(renderer.height)
                 ) else { throw GameError.creatingTexture }
                 sdlTexture = newTexture
             }
@@ -81,10 +81,9 @@ public extension State {
             try instance.draw(into: &renderer)
             
             SDL_UpdateTexture(
-                sdlTexture, nil, renderer.display.data,
-                Int32(MemoryLayout<Color>.stride * renderer.display.width)
+                sdlTexture, nil, renderer.data,
+                Int32(MemoryLayout<Color>.stride * renderer.width)
             )
-            
             
             var screenRect = SDL_Rect(x: 0, y: 0, w: pw, h: ph)
             SDL_RenderCopy(sdlRenderer, sdlTexture, nil, &screenRect)
@@ -100,21 +99,60 @@ private enum GameError: Error {
     case creatingTexture
 }
 
-public struct Input {
-    public let mouse: (x: Int, y: Int)
+public struct Input: ~Copyable {
+    public let mouse: Mouse
+    
+    private let keys: UnsafeBufferPointer<UInt8>
+    
+    public var tab: Bool { keys[Int(SDL_SCANCODE_TAB.rawValue)] == 1 }
+    public var enter: Bool { keys[Int(SDL_SCANCODE_RETURN.rawValue)] == 1 }
+    
+    public var leftShift: Bool { keys[Int(SDL_SCANCODE_LSHIFT.rawValue)] == 1 }
+    public var rightShift: Bool { keys[Int(SDL_SCANCODE_RSHIFT.rawValue)] == 1 }
+    public var leftAlt: Bool { keys[Int(SDL_SCANCODE_LALT.rawValue)] == 1 }
+    public var rightAlt: Bool { keys[Int(SDL_SCANCODE_RALT.rawValue)] == 1 }
+    public var leftControl: Bool { keys[Int(SDL_SCANCODE_LCTRL.rawValue)] == 1 }
+    public var rightControl: Bool { keys[Int(SDL_SCANCODE_RALT.rawValue)] == 1 }
+    
+    public var arrowUp: Bool { keys[Int(SDL_SCANCODE_UP.rawValue)] == 1 }
+    public var arrowDown: Bool { keys[Int(SDL_SCANCODE_DOWN.rawValue)] == 1 }
+    public var arrowLeft: Bool { keys[Int(SDL_SCANCODE_LEFT.rawValue)] == 1 }
+    public var arrorRight: Bool { keys[Int(SDL_SCANCODE_RIGHT.rawValue)] == 1 }
+    
+    public subscript(for name: String) -> Bool {
+        keys[Int(SDL_GetScancodeFromName(name).rawValue)] == 1
+    }
     
     fileprivate init(window: OpaquePointer) {
         var (wx, wy): (Int32, Int32) = (0, 0)
         SDL_GetWindowPosition(window, &wx, &wy)
         
         var (x, y): (Int32, Int32) = (0, 0)
-        SDL_GetMouseState(&x, &y)
+        let buttons = SDL_GetMouseState(&x, &y)
         SDL_GetGlobalMouseState(&x, &y)
         
         x -= wx; y -= wy
-        
         x /= Int32(pixelScale); y /= Int32(pixelScale)
         
-        self.mouse = (Int(x), Int(y))
+        let left = buttons & 1 == 1
+        let right = buttons & 3 == 3
+        
+        self.mouse = .init(x: Int(x), y: Int(y), left: left, right: right)
+        
+        var count: Int32 = 0
+        let rawKeys = SDL_GetKeyboardState(&count)!
+        self.keys = UnsafeBufferPointer(start: rawKeys, count: Int(count))
+    }
+    
+    public struct Mouse {
+        public var x, y: Int
+        public var left, right: Bool
+        
+        fileprivate init(x: Int, y: Int, left: Bool, right: Bool) {
+            self.x = x
+            self.y = y
+            self.left = left
+            self.right = right
+        }
     }
 }
