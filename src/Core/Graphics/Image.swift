@@ -22,6 +22,7 @@ public struct Image: MutableDrawable {
         }
     }
     
+    @discardableResult
     mutating func resize(width: Int, height: Int) -> Bool {
         guard width != self.width || height != self.height else { return false }
         var new = Image(width: width, height: height)

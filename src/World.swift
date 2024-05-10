@@ -9,27 +9,21 @@ let hotbarSlot = UnsafeTGAPointer(UI_TGA).grid(itemWidth: 32, itemHeight: 32)[0,
 let heart = UnsafeTGAPointer(UI_TGA).slice(x: 0, y: 16, width: 13, height: 12)
 
 @main
-public final class World: Game {
+public final class World {
     public private(set) var plane: Plane!
     public private(set) var player: Entity!
     
-    private var mouse: Input.Mouse! = nil
-    
     public init() {
-        self.plane = Plane.Material(world: self)
-        self.player = Entity.Human()
-        self.plane.add(entity: self.player)
+//        self.plane = Plane.Material(world: self)
+//        self.player = Entity.Human()
+//        self.plane.add(entity: self.player)
     }
     
-    public func update(input: borrowing Input) {
-        mouse = input.mouse
-    }
-    
-    public func draw(into renderer: inout some MutableDrawable) {
+    public func frame(input: Input, renderer: inout Image) {
         renderer.clear(with: .init(luminosity: 35))
         renderer.draw(hotbar, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
-        renderer.text("\(mouse!)", x: 2, y: 2)
-        renderer.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
+        renderer.text("\(input.mouse)", x: 2, y: 2)
+        renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
     private var hotbar: some Drawable {
@@ -45,6 +39,25 @@ public final class World: Game {
                     }
                 }
             }
+        }
+    }
+    
+    static func main() throws {
+        let sdl = try SDL()
+        var image = Image(width: sdl.width, height: sdl.height)
+        let instance = Self()
+        
+        loop: while true {
+            while let event = sdl.poll() {
+                switch event {
+                    case .quit: break loop
+                    case _: break
+                }
+            }
+            
+            image.resize(width: sdl.width, height: sdl.height)
+            instance.frame(input: sdl.input, renderer: &image)
+            try sdl.blit(image)
         }
     }
 }
