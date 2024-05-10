@@ -17,24 +17,24 @@ public struct DrawableBuilder {
         .init(repeat each drawables)
     }
     
-    public static func buildExpression(_ expression: any Drawable) -> [any Drawable] {
-        [expression]
+    public static func buildExpression<each D: Drawable>(_ expression: any Drawable) -> DrawableTuple<repeat each D> {
+        fatalError()
     }
     
-    public static func buildArray(_ components: [[any Drawable]]) -> [any Drawable] {
-        Array(components.joined())
+    public static func buildArray<each D: Drawable>(_ components: [[any Drawable]]) -> DrawableTuple<repeat each D> {
+        fatalError()
     }
     
-    public static func buildOptional(_ component: [any Drawable]?) -> [any Drawable] {
-        component ?? []
+    public static func buildOptional<each D: Drawable>(_ component: [any Drawable]?) -> DrawableTuple<repeat each D> {
+        fatalError()
     }
     
-    public static func buildEither(first component: [any Drawable]) -> [any Drawable] {
-        component
+    public static func buildEither<each D: Drawable>(first component: [any Drawable]) -> DrawableTuple<repeat each D> {
+        fatalError()
     }
     
-    public static func buildEither(second component: [any Drawable]) -> [any Drawable] {
-        component
+    public static func buildEither<each D: Drawable>(second component: [any Drawable]) -> DrawableTuple<repeat each D> {
+        fatalError()
     }
 }
 
@@ -179,6 +179,25 @@ public struct Text: Drawable {
     }
     
     public subscript(x: Int, y: Int) -> Color { image[x, y] }
+}
+
+// MARK: - Shapes
+
+public struct Rectangle: Drawable {
+    public let color: Color
+    public let width: Int
+    public let height: Int
+    
+    public init(width: Int, height: Int, color: Color = .white) {
+        self.width = width
+        self.height = height
+        self.color = color
+    }
+    
+    public subscript(x: Int, y: Int) -> Color {
+        assert(x < width && y < height && x >= 0 && y >= 0)
+        return color
+    }
 }
 
 // MARK: - Modifiers

@@ -27,8 +27,8 @@ public final class World: Game {
     
     public func draw(into image: inout Image) {
         image.clear(with: .init(luminosity: 35))
-        image.text("\(mouse!)", x: 2, y: 2)
         image.draw(hotbar, x: (image.width - hotbar.width) / 2, y: image.height - hotbar.height - 4)
+        image.text("\(mouse!)", x: 2, y: 2)
         image.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
     }
     

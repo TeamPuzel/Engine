@@ -88,6 +88,47 @@ public struct InfiniteDrawable: Drawable {
     public subscript(x: Int, y: Int) -> Color { color }
 }
 
+public extension Drawable {
+    func unbounded(_ backup: Color) -> UnboundedDrawable<Self> { .init(self, backup: backup) }
+    func unbounded(_ backup: Color) -> ThinUnboundedDrawable<Self> { .init(self) }
+}
+
+/// A safe wrapper around a drawable which catches out of bounds access, instead of
+/// potentially fatally accessing the inner drawable it returns a default value.
+public struct UnboundedDrawable<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public let backup: Color
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
+    
+    public init(_ inner: Inner, backup: Color) {
+        self.inner = inner
+        self.backup = backup
+    }
+    
+    public subscript(x: Int, y: Int) -> Color {
+        guard x >= 0 && y >= 0 && x < width && y < height else { return backup }
+        return inner[x, y]
+    }
+}
+
+/// A safe wrapper around a drawable which catches out of bounds access, instead of
+/// potentially fatally accessing the inner drawable it returns a transparent color.
+public struct ThinUnboundedDrawable<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
+    
+    public init(_ inner: Inner) {
+        self.inner = inner
+    }
+    
+    public subscript(x: Int, y: Int) -> Color {
+        guard x >= 0 && y >= 0 && x < width && y < height else { return .clear }
+        return inner[x, y]
+    }
+}
+
 /// A lazy 2d slice of another abstract `Drawable`, and a `Drawable` in itself.
 /// Useful for example for slicing sprites from a sprite sheet.
 public struct DrawableSlice<Inner: Drawable>: Drawable {
@@ -98,6 +139,7 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
     public let height: Int
     
     public init(_ inner: Inner, x: Int, y: Int, width: Int, height: Int) {
+        assert(x >= 0 && y >= 0 && width >= x && height >= y)
         self.x = x
         self.y = y
         self.width = width
@@ -149,6 +191,8 @@ public extension Drawable {
     func scaled(by scale: Int) -> ScaledDrawable<Self> { .init(self, scale: scale) }
 }
 
+// TODO(!): Calculate width and height at init time and use integers correctly instead of doubles.
+// TODO(?): Maybe this could be overloaded to support fractional scaling with doubles?
 public struct ScaledDrawable<Inner: Drawable>: Drawable {
     public let inner: Inner
     public let scaleX: Int

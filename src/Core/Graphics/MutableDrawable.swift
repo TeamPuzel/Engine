@@ -18,6 +18,7 @@ public extension MutableDrawable {
         }
     }
     
+    // TODO(!): Slice the drawable before drawing it to avoid wasting time drawing offscreen.
     mutating func draw(_ drawable: some Drawable, x: Int, y: Int) {
         for ix in 0..<drawable.width {
             for iy in 0..<drawable.height {
@@ -30,6 +31,7 @@ public extension MutableDrawable {
         }
     }
     
+    @available(*, deprecated, message: "Use Rectangle as a drawable instead")
     mutating func rectangle(x: Int, y: Int, w: Int, h: Int, color: Color = .white, fill: Bool = false) {
         for ix in 0..<w {
             for iy in 0..<h {
@@ -40,6 +42,7 @@ public extension MutableDrawable {
         }
     }
     
+    @available(*, deprecated, message: "Use Circle as a drawable instead")
     mutating func circle(x: Int, y: Int, r: Int, color: Color = .white, fill: Bool = false) {
         guard r >= 0 else { return }
         for ix in (x - r)..<(x + r + 1) {
