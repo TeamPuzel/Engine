@@ -9,6 +9,8 @@ public struct DrawableBuilder {
     public static func buildEither(second component: [any Drawable]) -> [any Drawable] { component }
 }
 
+// MARK: - Stacks
+
 public struct VStack: Drawable {
     public let image: Image
     public var width: Int { image.width }
@@ -17,9 +19,9 @@ public struct VStack: Drawable {
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
-        @DrawableBuilder drawables: () -> [any Drawable]
+        @DrawableBuilder content: () -> [any Drawable]
     ) {
-        let inner = drawables()
+        let inner = content()
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -56,9 +58,9 @@ public struct HStack: Drawable {
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
-        @DrawableBuilder drawables: () -> [any Drawable]
+        @DrawableBuilder content: () -> [any Drawable]
     ) {
-        let inner = drawables()
+        let inner = content()
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -92,8 +94,8 @@ public struct ZStack: Drawable {
     public var width: Int { image.width }
     public var height: Int { image.height }
     
-    public init(@DrawableBuilder drawables: () -> [any Drawable]) {
-        let inner = drawables()
+    public init(@DrawableBuilder content: () -> [any Drawable]) {
+        let inner = content()
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -114,3 +116,118 @@ public struct ZStack: Drawable {
     
     public enum Alignment { case top, bottom, centered }
 }
+
+// MARK: - Text
+
+public struct Text: Drawable {
+    public let image: Image
+    public var width: Int { image.width }
+    public var height: Int { image.height }
+    
+    public init<D: Drawable>(_ string: String, color: Color = .white, font: TileFont<D> = TileFonts.pico) {
+        var image = Image(
+            width: string.count * (font.inner.itemWidth + font.spacing) - font.spacing, 
+            height: font.inner.itemHeight
+        )
+        image.text(string, x: 0, y: 0, color: color, font: font)
+        self.image = image
+    }
+    
+    public subscript(x: Int, y: Int) -> Color { image[x, y] }
+}
+
+// MARK: - Modifiers
+
+public extension Drawable {
+    func frame(width: Int? = nil, height: Int? = nil) -> Frame<Self> {
+        .init(self, width: width ?? self.width, height: height ?? self.height)
+    }
+}
+
+public struct Frame<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public let width: Int
+    public let height: Int
+    
+    init(_ inner: Inner, width: Int, height: Int) {
+        self.inner = inner
+        self.width = max(width, inner.width)
+        self.height = max(height, inner.height)
+    }
+    
+    // TODO(!!): Branching in a subscript? Find a way to optimize this.
+    public subscript(x: Int, y: Int) -> Color {
+        let (offsetX, offsetY) = ((width - inner.width) / 2, (height - inner.height) / 2)
+        if x >= offsetX && y >= offsetY && x < offsetX + inner.width && y < offsetY + inner.height {
+            return inner[x - offsetX, y - offsetY]
+        } else {
+            return .clear
+        }
+    }
+}
+
+public extension Drawable {
+    func padding(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
+        .init(self, edges: edges, length: length)
+    }
+}
+
+public struct Padding<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public let edges: Edges
+    public let width: Int
+    public let height: Int
+    
+    init(_ inner: Inner, edges: Edges = .all, length: Int = 0) {
+        self.inner = inner
+        self.edges = edges
+        
+        self.width = if edges.contains(.horizontal) {
+            inner.width + length * 2
+        } else if edges.contains(.leading) || edges.contains(.trailing) {
+            inner.width + length
+        } else {
+            inner.width
+        }
+        
+        self.height = if edges.contains(.vertical) {
+            inner.height + length * 2
+        } else if edges.contains(.top) || edges.contains(.bottom) {
+            inner.height + length
+        } else {
+            inner.height
+        }
+    }
+    
+    // TODO(!!): Branching in a subscript? Find a way to optimize this.
+    public subscript(x: Int, y: Int) -> Color {
+        // TODO(!): Compute the correct offsets!
+        
+        let (offsetX, offsetY) = ((width - inner.width) / 2, (height - inner.height) / 2)
+        if x >= offsetX && y >= offsetY && x < offsetX + inner.width && y < offsetY + inner.height {
+            return inner[x - offsetX, y - offsetY]
+        } else {
+            return .clear
+        }
+    }
+}
+
+public struct Edges: OptionSet {
+    public let rawValue: UInt8
+    
+    public init(rawValue: UInt8) { self.rawValue = rawValue }
+    
+    public static let leading  = Self(rawValue: 1 << 0)
+    public static let trailing = Self(rawValue: 1 << 1)
+    public static let top      = Self(rawValue: 1 << 2)
+    public static let bottom   = Self(rawValue: 1 << 3)
+    
+    public static let horizontal: Self = [.leading, .trailing]
+    public static let vertical: Self = [.top, .bottom]
+    public static let all: Self = [.leading, .trailing, .top, .bottom]
+}
+
+// TODO(!): Drop shadow modifier
+//public struct Shadow<Inner: Drawable>: Drawable {
+//
+//}

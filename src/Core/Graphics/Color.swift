@@ -1,4 +1,5 @@
 
+/// The internal color representation of the engine, an 8 bit RGBA structure.
 public struct Color: Equatable {
     public let r, g, b, a: UInt8
     
@@ -56,6 +57,7 @@ public struct Color: Equatable {
     }
 }
 
+// TODO(!!!): Blending methods. The operators can forward to those if I decide to keep them.
 public extension Color {
     // TODO(?): Does color need these in the first place?
     // TODO(!): These methods are extremely likely to overflow.

@@ -1,7 +1,8 @@
 
 import Assets
 
-public struct Fonts {
+/// A namespace for built in tile fonts.
+public struct TileFonts {
     public static var pico: TileFont<UnsafeTGAPointer> {
         .init(
             source: UnsafeTGAPointer(PICOFONT_TGA),

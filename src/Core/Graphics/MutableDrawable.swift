@@ -1,4 +1,5 @@
 
+/// A `Drawable` which can be rendered into, derives a lot of rendering functionality.
 public protocol MutableDrawable: Drawable {
     subscript(x: Int, y: Int) -> Color { get set }
 }
@@ -57,7 +58,7 @@ public extension MutableDrawable {
         _ string: String,
         x: Int, y: Int,
         color: Color = .white,
-        font: TileFont<some Drawable> = Fonts.pico
+        font: TileFont<some Drawable> = TileFonts.pico
     ) {
         for (i, char) in string.enumerated() {
             if let symbol = font[char] {

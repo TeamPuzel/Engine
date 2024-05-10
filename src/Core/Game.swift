@@ -1,10 +1,10 @@
 
 import SDL
 
-/// A target independent game that can be run by a runtime for any platform.
+/// A target independent game which can be run by a runtime for any platform.
 public protocol Game {
     init() throws
-    // TODO(!!): Not actually called reliably. Make this framerate independed like the Rust version.
+    // TODO(!!): Not actually called reliably. Make this framerate independent.
     /// Called reliably every tick.
     mutating func update(input: borrowing Input) throws
     /// Called every frame, does not guarantee timing and can even be skipped.
@@ -15,6 +15,7 @@ fileprivate let minimumWidth = 600
 fileprivate let minimumHeight = 400
 fileprivate let pixelScale = 2
 
+// TODO(!!): Optimize the SDL implementation, it's quite inefficient.
 public extension Game {
     static func main() throws {
         guard SDL_Init(SDL_INIT_VIDEO) == 0 else { throw GameError.initializingSDL }
@@ -99,6 +100,9 @@ private enum GameError: Error {
     case creatingTexture
 }
 
+// TODO(!!): Consider changing how this is constructed to drop the copyability restriction.
+//           It is shared mutable state in a very unobvious way and `Input` should be
+//           `Sendable` when the engine starts to implement more concurrency features.
 public struct Input: ~Copyable {
     public let mouse: Mouse
     

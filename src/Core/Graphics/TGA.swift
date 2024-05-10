@@ -1,9 +1,13 @@
 
-/// A very unsafe experimental implementation of the TGA image format, ignores the header assuming
+/// A very unsafe implementation of the TGA image format, ignores the header assuming
 /// no additional information and just reads it blindly as 32 bit BGRA.
 ///
 /// I will likely avoid improving it, rather I will implement a simpler format of my own
 /// and add it to Aseprite (or write a custom editor within this engine, probably easier).
+///
+/// Using it to draw directly incurs a performance cost due to the pixel format conversion.
+/// It's probably insignificant but flattening into an `Image` would avoid it entirely,
+/// although doubling memory usage.
 public struct UnsafeTGAPointer: Drawable {
     private let base: UnsafeRawPointer
     

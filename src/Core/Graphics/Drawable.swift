@@ -1,11 +1,20 @@
 
+/// The core of the engine, `Drawable` is an abstract representation of basically anything
+/// that can be drawn, and with `MutableDrawable` anything that can also be drawn into.
+///
+/// `Drawable` implements a significant amount of functionality for lazily transforming drawables
+/// into other drawables, building UI layouts and much more.
+///
+/// # Equality
+/// Equality comparison works by comparing individual pixels, unless the proportions are not
+/// equal themselves which of course makes drawables not equal.
 public protocol Drawable: Equatable {
     var width: Int { get }
     var height: Int { get }
     subscript(x: Int, y: Int) -> Color { get }
 }
 
-/// A `Drawable` which forwards its implementation to an inner `Drawable`.
+/// A convenience `Drawable` which derives its implementation from an inner `Drawable`.
 public protocol WrapperDrawable: Drawable {
     associatedtype Wrapped: Drawable
     var wrapping: KeyPath<Self, Wrapped> { get }
@@ -59,11 +68,24 @@ public extension Drawable {
     }
 }
 
+/// A `Drawable` with no size which will panic on any subscript use.
 public struct EmptyDrawable: Drawable {
-    public init() {}
     public var width: Int { 0 }
     public var height: Int { 0 }
+    public init() {}
     public subscript(x: Int, y: Int) -> Color { fatalError() }
+}
+
+/// A uniform `Drawable` of `Int.max` proportions.
+///
+/// Due to its effectively infinite size this drawable should never be drawn directly.
+// TODO(!): Is this useful? Will keep it for now and see.
+public struct InfiniteDrawable: Drawable {
+    public let color: Color
+    public var width: Int { Int.max }
+    public var height: Int { Int.max }
+    public init(_ color: Color = .clear) { self.color = color }
+    public subscript(x: Int, y: Int) -> Color { color }
 }
 
 /// A lazy 2d slice of another abstract `Drawable`, and a `Drawable` in itself.
@@ -107,7 +129,7 @@ public struct DrawableGrid<Inner: Drawable>: Drawable {
     }
 }
 
-/// A lazy wrapper around a drawable, applies a map function to every color it yields.
+/// A lazy wrapper around a drawable, applies a transform function to every color it yields.
 public struct ColorMap<Inner: Drawable>: Drawable {
     public let inner: Inner
     private let transform: (Color) -> Color
@@ -122,6 +144,8 @@ public struct ColorMap<Inner: Drawable>: Drawable {
     public subscript(x: Int, y: Int) -> Color { transform(inner[x, y]) }
 }
 
+/// A basic tile font, wraps a `DrawableGrid` and provides a mapping of characters
+/// to grid coordinates with little to no configuration capabilities.
 // TODO(!): This should be a `TileFont`. Use `Font` for a generic font protocol describing only
 //          the mapping of characters to abstract drawables.
 public struct TileFont<Source: Drawable> {
@@ -148,18 +172,4 @@ public struct TileFont<Source: Drawable> {
             return nil
         }
     }
-}
-
-public struct Text: Drawable {
-    public let image: Image
-    public var width: Int { image.width }
-    public var height: Int { image.height }
-    
-    public init<D: Drawable>(_ string: String, color: Color = .white, font: TileFont<D> = Fonts.pico) {
-        var image = Image(width: string.count * (font.inner.itemWidth + font.spacing), height: font.inner.itemHeight)
-        image.text(string, x: 0, y: 0, color: color, font: font)
-        self.image = image
-    }
-    
-    public subscript(x: Int, y: Int) -> Color { image[x, y] }
 }
