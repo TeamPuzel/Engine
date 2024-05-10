@@ -25,11 +25,11 @@ public final class World: Game {
         mouse = input.mouse
     }
     
-    public func draw(into image: inout Image) {
-        image.clear(with: .init(luminosity: 35))
-        image.draw(hotbar, x: (image.width - hotbar.width) / 2, y: image.height - hotbar.height - 4)
-        image.text("\(mouse!)", x: 2, y: 2)
-        image.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
+    public func draw(into renderer: inout some MutableDrawable) {
+        renderer.clear(with: .init(luminosity: 35))
+        renderer.draw(hotbar, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
+        renderer.text("\(mouse!)", x: 2, y: 2)
+        renderer.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
     }
     
     private var hotbar: some Drawable {

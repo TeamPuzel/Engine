@@ -31,7 +31,6 @@ public extension MutableDrawable {
         }
     }
     
-    @available(*, deprecated, message: "Use Rectangle as a drawable instead")
     mutating func rectangle(x: Int, y: Int, w: Int, h: Int, color: Color = .white, fill: Bool = false) {
         for ix in 0..<w {
             for iy in 0..<h {
@@ -42,7 +41,6 @@ public extension MutableDrawable {
         }
     }
     
-    @available(*, deprecated, message: "Use Circle as a drawable instead")
     mutating func circle(x: Int, y: Int, r: Int, color: Color = .white, fill: Bool = false) {
         guard r >= 0 else { return }
         for ix in (x - r)..<(x + r + 1) {
@@ -72,5 +70,25 @@ public extension MutableDrawable {
                 )
             }
         }
+    }
+}
+
+// MARK: - Hardware (Experimental)
+
+/// Select types such as `Rectangle` can be efficiently rendered on hardware. For this reason
+/// They can provide a custom draw method with direct access to a given hardware renderer.
+///
+/// For hardware rendering to be possible the most external drawable has to be `HardwareDrawable`,
+/// otherwise there is no way to tell if some nested drawable can be rendered on hardware.
+public protocol HardwareDrawable<Renderer>: Drawable {
+    associatedtype Renderer: HardwareRenderer
+    func draw(into renderer: inout Renderer)
+}
+
+public protocol HardwareRenderer {}
+
+public extension HardwareRenderer {
+    mutating func draw(_ drawable: some HardwareDrawable<Self>, x: Int, y: Int) {
+        drawable.draw(into: &self)
     }
 }

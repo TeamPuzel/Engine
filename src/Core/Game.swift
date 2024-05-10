@@ -8,7 +8,7 @@ public protocol Game {
     /// Called reliably every tick.
     mutating func update(input: borrowing Input) throws
     /// Called every frame, does not guarantee timing and can even be skipped.
-    mutating func draw(into image: inout Image) throws
+    mutating func draw(into renderer: inout some MutableDrawable) throws
 }
 
 fileprivate let minimumWidth = 600
@@ -157,6 +157,53 @@ public struct Input: ~Copyable {
             self.y = y
             self.left = left
             self.right = right
+        }
+    }
+}
+
+public struct SDLRenderer: MutableDrawable {
+    private let renderer: OpaquePointer
+    
+    public var width: Int {
+        var (width, height): (Int32, Int32) = (0, 0)
+        SDL_GetRendererOutputSize(renderer, &width, &height)
+        return Int(width)
+    }
+    public var height: Int {
+        var (width, height): (Int32, Int32) = (0, 0)
+        SDL_GetRendererOutputSize(renderer, &width, &height)
+        return Int(height)
+    }
+    
+    fileprivate init(_ renderer: OpaquePointer) { self.renderer = renderer }
+    
+    public mutating func clear(with color: Color = .black) {
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a)
+        SDL_RenderClear(renderer)
+    }
+    
+    public mutating func draw(_ drawable: Rectangle, x: Int, y: Int) {
+        SDL_SetRenderDrawColor(renderer, drawable.color.r, drawable.color.g, drawable.color.b, drawable.color.a)
+        var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: Int32(drawable.width), h: Int32(drawable.height))
+        SDL_RenderFillRect(renderer, &rect)
+    }
+    
+    public subscript(x: Int, y: Int) -> Color {
+        get {
+            var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: 1, h: 1)
+            var pixel: Color = .clear
+            SDL_RenderReadPixels(
+                renderer, &rect,
+                SDL_PIXELFORMAT_RGBA32.rawValue,
+                &pixel, Int32(MemoryLayout<Color>.stride)
+            )
+            return pixel
+        }
+        set {
+            // TODO(!): Combined hardware/software rendering. Draw in software until a hardware command,
+            //          at that point submit the buffer.
+            fatalError()
+            //var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: 1, h: 1)
         }
     }
 }
