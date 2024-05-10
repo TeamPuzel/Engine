@@ -144,6 +144,35 @@ public struct ColorMap<Inner: Drawable>: Drawable {
     public subscript(x: Int, y: Int) -> Color { transform(inner[x, y]) }
 }
 
+public extension Drawable {
+    func scaled(x: Int = 1, y: Int = 1) -> ScaledDrawable<Self> { .init(self, x: x, y: y) }
+    func scaled(by scale: Int) -> ScaledDrawable<Self> { .init(self, scale: scale) }
+}
+
+public struct ScaledDrawable<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public let scaleX: Int
+    public let scaleY: Int
+    public var width: Int { Int((Double(inner.width) * Double(scaleX)).rounded(.down)) }
+    public var height: Int { Int((Double(inner.height) * Double(scaleY)).rounded(.down))  }
+    
+    public init(_ inner: Inner, x: Int = 1, y: Int = 1) {
+        assert(x >= 1 && y >= 1)
+        self.inner = inner
+        self.scaleX = x
+        self.scaleY = y
+    }
+    
+    public init(_ inner: Inner, scale: Int) {
+        assert(scale >= 1)
+        self.inner = inner
+        self.scaleX = scale
+        self.scaleY = scale
+    }
+    
+    public subscript(x: Int, y: Int) -> Color { inner[x / scaleX, y / scaleY] }
+}
+
 /// A basic tile font, wraps a `DrawableGrid` and provides a mapping of characters
 /// to grid coordinates with little to no configuration capabilities.
 // TODO(!): This should be a `TileFont`. Use `Font` for a generic font protocol describing only

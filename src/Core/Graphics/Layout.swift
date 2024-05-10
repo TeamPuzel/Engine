@@ -1,12 +1,57 @@
 
+// MARK: - Layout Builders
+
 @resultBuilder
-public struct DrawableBuilder {
+public struct DynamicDrawableBuilder {
     public static func buildBlock(_ drawables: [any Drawable]...) -> [any Drawable] { Array(drawables.joined()) }
     public static func buildExpression(_ expression: any Drawable) -> [any Drawable] { [expression] }
     public static func buildArray(_ components: [[any Drawable]]) -> [any Drawable] { Array(components.joined()) }
     public static func buildOptional(_ component: [any Drawable]?) -> [any Drawable] { component ?? [] }
     public static func buildEither(first component: [any Drawable]) -> [any Drawable] { component }
     public static func buildEither(second component: [any Drawable]) -> [any Drawable] { component }
+}
+
+@resultBuilder
+public struct DrawableBuilder {
+    public static func buildBlock<each D: Drawable>(_ drawables: repeat each D) -> DrawableTuple<repeat each D> {
+        .init(repeat each drawables)
+    }
+    
+    public static func buildExpression(_ expression: any Drawable) -> [any Drawable] {
+        [expression]
+    }
+    
+    public static func buildArray(_ components: [[any Drawable]]) -> [any Drawable] {
+        Array(components.joined())
+    }
+    
+    public static func buildOptional(_ component: [any Drawable]?) -> [any Drawable] {
+        component ?? []
+    }
+    
+    public static func buildEither(first component: [any Drawable]) -> [any Drawable] {
+        component
+    }
+    
+    public static func buildEither(second component: [any Drawable]) -> [any Drawable] {
+        component
+    }
+}
+
+/// A static collection of drawables.
+///
+/// Because it only bundles drawables together and carries no additional information it is not
+/// `Drawable` itself. A drawable like `VStack` is required to provide the information
+/// required to know how to draw it. Its main purpose is to serve as a building block
+/// for the `DrawableBuilder` enabling composability of recursive drawables.
+public struct DrawableTuple<each D: Drawable> {
+    public let drawables: (repeat each D)
+    public init(_ drawables: repeat each D) { self.drawables = (repeat each drawables) }
+}
+
+public protocol RecursiveDrawable: Drawable {
+    associatedtype Children: Drawable
+    var children: DrawableTuple<Children> { get }
 }
 
 // MARK: - Stacks
@@ -19,7 +64,7 @@ public struct VStack: Drawable {
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
-        @DrawableBuilder content: () -> [any Drawable]
+        @DynamicDrawableBuilder content: () -> [any Drawable]
     ) {
         let inner = content()
         
@@ -58,7 +103,7 @@ public struct HStack: Drawable {
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
-        @DrawableBuilder content: () -> [any Drawable]
+        @DynamicDrawableBuilder content: () -> [any Drawable]
     ) {
         let inner = content()
         
@@ -94,7 +139,7 @@ public struct ZStack: Drawable {
     public var width: Int { image.width }
     public var height: Int { image.height }
     
-    public init(@DrawableBuilder content: () -> [any Drawable]) {
+    public init(@DynamicDrawableBuilder content: () -> [any Drawable]) {
         let inner = content()
         
         var (width, height) = (0, 0)
@@ -139,7 +184,7 @@ public struct Text: Drawable {
 // MARK: - Modifiers
 
 public extension Drawable {
-    func frame(width: Int? = nil, height: Int? = nil) -> Frame<Self> {
+    func framed(width: Int? = nil, height: Int? = nil) -> Frame<Self> {
         .init(self, width: width ?? self.width, height: height ?? self.height)
     }
 }
@@ -167,7 +212,7 @@ public struct Frame<Inner: Drawable>: Drawable {
 }
 
 public extension Drawable {
-    func padding(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
+    func padded(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
         .init(self, edges: edges, length: length)
     }
 }
@@ -202,13 +247,14 @@ public struct Padding<Inner: Drawable>: Drawable {
     // TODO(!!): Branching in a subscript? Find a way to optimize this.
     public subscript(x: Int, y: Int) -> Color {
         // TODO(!): Compute the correct offsets!
+        fatalError()
         
-        let (offsetX, offsetY) = ((width - inner.width) / 2, (height - inner.height) / 2)
-        if x >= offsetX && y >= offsetY && x < offsetX + inner.width && y < offsetY + inner.height {
-            return inner[x - offsetX, y - offsetY]
-        } else {
-            return .clear
-        }
+//        let (offsetX, offsetY) = ((width - inner.width) / 2, (height - inner.height) / 2)
+//        if x >= offsetX && y >= offsetY && x < offsetX + inner.width && y < offsetY + inner.height {
+//            return inner[x - offsetX, y - offsetY]
+//        } else {
+//            return .clear
+//        }
     }
 }
 

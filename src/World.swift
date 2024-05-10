@@ -35,7 +35,7 @@ public final class World: Game {
     private var hotbar: some Drawable {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 2) {
-                for _ in 1...max(1, mouse.x) { heart }
+                for _ in 1...10 { heart }
             }
             HStack {
                 for i in 1...9 {
