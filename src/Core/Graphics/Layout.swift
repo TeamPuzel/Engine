@@ -38,22 +38,6 @@ public struct DrawableBuilder {
     }
 }
 
-/// A static collection of drawables.
-///
-/// Because it only bundles drawables together and carries no additional information it is not
-/// `Drawable` itself. A drawable like `VStack` is required to provide the information
-/// required to know how to draw it. Its main purpose is to serve as a building block
-/// for the `DrawableBuilder` enabling composability of recursive drawables.
-public struct DrawableTuple<each D: Drawable> {
-    public let drawables: (repeat each D)
-    public init(_ drawables: repeat each D) { self.drawables = (repeat each drawables) }
-}
-
-public protocol RecursiveDrawable: Drawable {
-    associatedtype Children: Drawable
-    var children: DrawableTuple<Children> { get }
-}
-
 // MARK: - Stacks
 
 public struct VStack: Drawable {
@@ -296,3 +280,68 @@ public struct Edges: OptionSet {
 //public struct Shadow<Inner: Drawable>: Drawable {
 //
 //}
+
+// MARK: - Interactivity
+
+/// A static collection of drawables.
+///
+/// Because it only bundles drawables together and carries no additional information it is not
+/// `Drawable` itself. A drawable like `VStack` is required to provide the information
+/// required to know how to draw it. Its main purpose is to serve as a building block
+/// for the `DrawableBuilder` enabling composability of recursive drawables.
+public struct DrawableTuple<each D: Drawable> {
+    public let drawables: (repeat each D)
+    public init(_ drawables: repeat each D) { self.drawables = (repeat each drawables) }
+}
+
+/// A `Drawable` which contains other drawables and exposes them for traversal as a tuple of
+/// drawables. This is used to retroactively understand layouts for event processing.
+public protocol RecursiveDrawable: Drawable {
+    typealias Child = (x: Int, y: Int, child: any Drawable)
+    var children: [Child] { get }
+}
+
+public protocol ProcessingDrawable: RecursiveDrawable {
+    func process(input: Input, x: Int, y: Int)
+}
+
+public extension RecursiveDrawable {
+    func traverse(input: Input, x: Int = 0, y: Int = 0) {
+        (self as? any ProcessingDrawable)?.process(input: input, x: x, y: y)
+        for (cx, cy, child) in children {
+            (child as? any RecursiveDrawable)?.traverse(input: input, x: x + cx, y: y + cy)
+        }
+    }
+}
+
+public extension Drawable {
+    func onClick(_ click: @escaping () -> Void) -> ClickProcessing<Self> { .init(self, click: click) }
+}
+
+public struct ClickProcessing<Inner: Drawable>: ProcessingDrawable {
+    public let inner: Inner
+    public let click: () -> Void
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
+    
+    public var children: [Child] { [(0, 0, inner)] }
+    
+    public init(_ inner: Inner, click: @escaping () -> Void) {
+        self.inner = inner
+        self.click = click
+    }
+    
+    public subscript(x: Int, y: Int) -> Color { inner[x, y] }
+    
+    public func process(input: Input, x: Int, y: Int) {
+        if
+            input.mouse.x >= x &&
+            input.mouse.x < x + width &&
+            input.mouse.y >= y &&
+            input.mouse.y < y + height &&
+            input.mouse.left
+        {
+            click()
+        }
+    }
+}

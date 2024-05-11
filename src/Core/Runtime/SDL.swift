@@ -40,7 +40,7 @@ public final class SDL {
             Int32(width), Int32(height)
         ) else { throw .creatingTexture }
         self.texture = texture
-        SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest)
+//        SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest)
         
         Self.shared = self
     }
@@ -75,8 +75,8 @@ public final class SDL {
         x -= wx; y -= wy
         x /= Int32(scale); y /= Int32(scale)
         
-        let left = buttons & 1 == 1
-        let right = buttons & 3 == 3
+        let left = buttons & 1 << 0 == 1 << 0
+        let right = buttons & 1 << 2 == 1 << 2
         
         return .init(mouse: .init(x: Int(x), y: Int(y), left: left, right: right))
         

@@ -14,22 +14,26 @@ public final class World {
     public private(set) var player: Entity!
     
     public init() {
-//        self.plane = Plane.Material(world: self)
-//        self.player = Entity.Human()
-//        self.plane.add(entity: self.player)
+        self.plane = Plane.Material(world: self)
+        self.player = Entity.Human()
+        self.plane.add(entity: self.player)
     }
     
+    var hearts: Int = 1
+    
     public func frame(input: Input, renderer: inout Image) {
+        hotbar.traverse(input: input, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
+        
         renderer.clear(with: .init(luminosity: 35))
         renderer.draw(hotbar, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
         renderer.text("\(input.mouse)", x: 2, y: 2)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
-    private var hotbar: some Drawable {
+    private var hotbar: some RecursiveDrawable {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 2) {
-                for _ in 1...10 { heart }
+                for _ in 1...hearts { heart }
             }
             HStack {
                 for i in 1...9 {
@@ -39,6 +43,8 @@ public final class World {
                     }
                 }
             }
+        }.onClick {
+            self.hearts += 1
         }
     }
     
