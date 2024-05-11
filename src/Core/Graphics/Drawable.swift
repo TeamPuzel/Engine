@@ -14,18 +14,6 @@ public protocol Drawable: Equatable {
     subscript(x: Int, y: Int) -> Color { get }
 }
 
-/// A convenience `Drawable` which derives its implementation from an inner `Drawable`.
-public protocol WrapperDrawable: Drawable {
-    associatedtype Wrapped: Drawable
-    var wrapping: KeyPath<Self, Wrapped> { get }
-}
-
-public extension WrapperDrawable {
-    var width: Int { self[keyPath: wrapping].width }
-    var height: Int { self[keyPath: wrapping].height }
-    subscript(x: Int, y: Int) -> Color { self[keyPath: wrapping][x, y] }
-}
-
 public extension Drawable {
     func slice(x: Int, y: Int, width: Int, height: Int) -> DrawableSlice<Self> {
         .init(self, x: x, y: y, width: width, height: height)
@@ -90,7 +78,7 @@ public struct InfiniteDrawable: Drawable {
 
 public extension Drawable {
     func unbounded(_ backup: Color) -> UnboundedDrawable<Self> { .init(self, backup: backup) }
-    func unbounded(_ backup: Color) -> ThinUnboundedDrawable<Self> { .init(self) }
+    func unbounded() -> ThinUnboundedDrawable<Self> { .init(self) }
 }
 
 /// A safe wrapper around a drawable which catches out of bounds access, instead of
@@ -139,7 +127,7 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
     public let height: Int
     
     public init(_ inner: Inner, x: Int, y: Int, width: Int, height: Int) {
-        assert(x >= 0 && y >= 0 && width >= x && height >= y)
+        assert(x >= 0 && y >= 0)
         self.x = x
         self.y = y
         self.width = width
@@ -149,6 +137,14 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
     
     public subscript(x: Int, y: Int) -> Color { inner[x + self.x, y + self.y] }
 }
+
+// TODO(!): Is this useful?
+//extension DrawableSlice: MutableDrawable where Inner: MutableDrawable {
+//    public subscript(x: Int, y: Int) -> Color {
+//        get { inner[x + self.x, y + self.y] }
+//        set { inner[x + self.x, y + self.y] = newValue }
+//    }
+//}
 
 /// A lazy grid of equal size `Drawable` slices, for example a sprite sheet, tile map or tile font.
 public struct DrawableGrid<Inner: Drawable>: Drawable {

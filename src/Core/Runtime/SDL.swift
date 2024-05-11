@@ -16,7 +16,7 @@ public final class SDL {
         self.scale = scale
         
         guard let window = SDL_CreateWindow(
-            String(describing: Self.self),
+            name,
             Int32(SDL_WINDOWPOS_CENTERED_MASK),
             Int32(SDL_WINDOWPOS_CENTERED_MASK),
             Int32(width * scale), Int32(height * scale),

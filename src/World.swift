@@ -19,8 +19,6 @@ public final class World {
         self.plane.add(entity: self.player)
     }
     
-    var hearts: Int = 1
-    
     public func frame(input: Input, renderer: inout Image) {
         hotbar.traverse(input: input, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
         
@@ -29,6 +27,8 @@ public final class World {
         renderer.text("\(input.mouse)", x: 2, y: 2)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
+    
+    var hearts: Int = 1
     
     private var hotbar: some RecursiveDrawable {
         VStack(alignment: .leading, spacing: 2) {
