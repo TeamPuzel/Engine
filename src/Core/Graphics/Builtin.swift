@@ -1,12 +1,29 @@
 
 import Assets
 
+/// A namespace for built in images.
+public enum Images {
+    public enum UI {
+        public static let cursor: Image = [
+            [.clear, .black, .clear, .clear, .clear, .clear],
+            [.black, .white, .black, .clear, .clear, .clear],
+            [.black, .white, .white, .black, .clear, .clear],
+            [.black, .white, .white, .white, .black, .clear],
+            [.black, .white, .white, .white, .white, .black],
+            [.black, .white, .white, .black, .black, .clear],
+            [.clear, .black, .black, .white, .black, .clear]
+        ]
+    }
+}
+
 /// A namespace for built in tile fonts.
 public struct TileFonts {
-    public static var pico: TileFont<UnsafeTGAPointer> {
-        .init(
+    public static let pico =
+        TileFont(
             source: UnsafeTGAPointer(PICOFONT_TGA),
-            charWidth: 3, charHeight: 5, map: { char in switch char {
+            charWidth: 3,
+            charHeight: 5
+        ) { char in switch char {
                 case "0": (0, 0)
                 case "1": (1, 0)
                 case "2": (2, 0)
@@ -78,7 +95,7 @@ public struct TileFonts {
                 case "~": (66, 0)
                     
                 case _: nil
-            } }
-        )
-    }
+            }
+        }
+    
 }

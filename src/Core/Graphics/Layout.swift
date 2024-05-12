@@ -40,17 +40,46 @@ public struct DrawableBuilder {
 
 // MARK: - Stacks
 
-public struct VStack: Drawable {
+// TODO(!): Variadic generics instead of this inefficient mess.
+public struct VStack: RecursiveDrawable {
+    public let inner: [any Drawable]
     public let image: Image
+    public let alignment: Alignment
+    public let spacing: Int
     public var width: Int { image.width }
     public var height: Int { image.height }
+    
+    public var children: [Child] {
+        var buf: [Child] = []
+        
+        var (width, height) = (0, 0)
+        for drawable in inner {
+            width = width > drawable.width ? width : drawable.width
+            height += drawable.height + spacing
+        }
+        
+        var currentY = 0
+        for drawable in inner {
+            let offset = switch alignment {
+                case .leading: 0
+                case .trailing: width - drawable.width
+                case .centered: (width - drawable.width) / 2
+            }
+            buf.append((x: offset, y: currentY, drawable))
+            currentY += drawable.height + spacing
+        }
+        
+        return buf
+    }
     
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
         @DynamicDrawableBuilder content: () -> [any Drawable]
     ) {
-        let inner = content()
+        self.inner = content()
+        self.spacing = spacing
+        self.alignment = alignment
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -79,17 +108,45 @@ public struct VStack: Drawable {
     public enum Alignment { case leading, trailing, centered }
 }
 
-public struct HStack: Drawable {
+public struct HStack: RecursiveDrawable {
+    public let inner: [any Drawable]
     public let image: Image
+    public let alignment: Alignment
+    public let spacing: Int
     public var width: Int { image.width }
     public var height: Int { image.height }
+    
+    public var children: [Child] {
+        var buf: [Child] = []
+        
+        var (width, height) = (0, 0)
+        for drawable in inner {
+            height = height > drawable.height ? height : drawable.height
+            width += drawable.width + spacing
+        }
+        
+        var currentX = 0
+        for drawable in inner {
+            let offset = switch alignment {
+                case .top: 0
+                case .bottom: height - drawable.height
+                case .centered: (height - drawable.height) / 2
+            }
+            buf.append((x: currentX, y: offset, drawable))
+            currentX += drawable.width + spacing
+        }
+        
+        return buf
+    }
     
     public init(
         alignment: Alignment = .centered,
         spacing: Int = 0,
         @DynamicDrawableBuilder content: () -> [any Drawable]
     ) {
-        let inner = content()
+        self.inner = content()
+        self.spacing = spacing
+        self.alignment = alignment
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -118,13 +175,31 @@ public struct HStack: Drawable {
     public enum Alignment { case top, bottom, centered }
 }
 
-public struct ZStack: Drawable {
+public struct ZStack: RecursiveDrawable {
+    public let inner: [any Drawable]
     public let image: Image
     public var width: Int { image.width }
     public var height: Int { image.height }
     
+    public var children: [Child] {
+        var buf: [Child] = []
+        
+        var (width, height) = (0, 0)
+        for drawable in inner {
+            height = height > drawable.height ? height : drawable.height
+            width = width > drawable.width ? width : drawable.width
+        }
+        
+        for drawable in inner {
+            buf.append((x: (image.width - drawable.width) / 2, y: (image.height - drawable.height) / 2, drawable))
+        }
+        
+        
+        return buf
+    }
+    
     public init(@DynamicDrawableBuilder content: () -> [any Drawable]) {
-        let inner = content()
+        self.inner = content()
         
         var (width, height) = (0, 0)
         for drawable in inner {
@@ -297,6 +372,7 @@ public struct DrawableTuple<each D: Drawable> {
 /// A `Drawable` which contains other drawables and exposes them for traversal as a tuple of
 /// drawables. This is used to retroactively understand layouts for event processing.
 public protocol RecursiveDrawable: Drawable {
+    /// A bundle of child drawable and its position relative to the drawable origin.
     typealias Child = (x: Int, y: Int, child: any Drawable)
     var children: [Child] { get }
 }
@@ -316,6 +392,7 @@ public extension RecursiveDrawable {
 
 public extension Drawable {
     func onClick(_ click: @escaping () -> Void) -> ClickProcessing<Self> { .init(self, click: click) }
+    func onHover(_ hover: @escaping () -> Void) -> HoverProcessing<Self> { .init(self, hover: hover) }
 }
 
 public struct ClickProcessing<Inner: Drawable>: ProcessingDrawable {
@@ -342,6 +419,33 @@ public struct ClickProcessing<Inner: Drawable>: ProcessingDrawable {
             input.mouse.left
         {
             click()
+        }
+    }
+}
+
+public struct HoverProcessing<Inner: Drawable>: ProcessingDrawable {
+    public let inner: Inner
+    public let hover: () -> Void
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
+    
+    public var children: [Child] { [(0, 0, inner)] }
+    
+    public init(_ inner: Inner, hover: @escaping () -> Void) {
+        self.inner = inner
+        self.hover = hover
+    }
+    
+    public subscript(x: Int, y: Int) -> Color { inner[x, y] }
+    
+    public func process(input: Input, x: Int, y: Int) {
+        if
+            input.mouse.x >= x &&
+            input.mouse.x < x + width &&
+            input.mouse.y >= y &&
+            input.mouse.y < y + height
+        {
+            hover()
         }
     }
 }

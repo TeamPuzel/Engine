@@ -8,6 +8,9 @@
 /// Using it to draw directly incurs a performance cost due to the pixel format conversion.
 /// It's probably insignificant but flattening into an `Image` would avoid it entirely,
 /// although doubling memory usage.
+///
+/// # Safety
+/// Actually using this type is safe as long as the assumptions about its encoding hold true.
 public struct UnsafeTGAPointer: Drawable {
     private let base: UnsafeRawPointer
     

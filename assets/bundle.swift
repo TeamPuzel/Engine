@@ -18,6 +18,8 @@ while let object = readdir(dir) {
     }
 }
 
+fileNames.forEach { print("Detected \($0)") }
+
 let files = fileNames.map { fopen("\(bundlePath)/\($0)", "r")! }
 defer { files.forEach { fclose($0) } }
 
@@ -36,6 +38,8 @@ let data = files.map {
 
 let names = fileNames.map { $0.uppercased().replacing(".", with: "_") }
 let namedData = zip(names, data)
+
+print("Generating code...")
 
 func codegen(_ name: String, _ data: [UInt8]) -> (header: String, source: String) {
     let header = "const unsigned char *\(name);\n"
@@ -58,6 +62,8 @@ let code = namedData
         acc.header.append(contentsOf: el.header)
         acc.source.append(contentsOf: el.source)
     }
+
+print("Writing files...")
 
 let header = fopen("./module/include/bundle.h", "w")!
 defer { fflush(header); fclose(header) }

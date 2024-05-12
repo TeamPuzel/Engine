@@ -1,6 +1,8 @@
 
+#if canImport(SDL)
 import SDL
 
+/// A hardcoded and temporary implementation of an SDL backend.
 public final class SDL {
     private let window: OpaquePointer
     private let renderer: OpaquePointer
@@ -40,7 +42,6 @@ public final class SDL {
             Int32(width), Int32(height)
         ) else { throw .creatingTexture }
         self.texture = texture
-//        SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest)
         
         Self.shared = self
     }
@@ -85,9 +86,9 @@ public final class SDL {
 //        self.keys = UnsafeBufferPointer(start: rawKeys, count: Int(count))
     }
     
-    public func _renderer() -> SDLRenderer {
-        fatalError()
-    }
+//    public func _renderer() -> SDLRenderer {
+//        fatalError()
+//    }
     
     public func blit(_ image: borrowing Image) throws(Error) {
         SDL_RenderClear(renderer)
@@ -141,49 +142,16 @@ public final class SDL {
     }
 }
 
-public struct SDLRenderer: MutableDrawable {
-    private let renderer: OpaquePointer
-    
-    public var width: Int {
-        var (width, height): (Int32, Int32) = (0, 0)
-        SDL_GetRendererOutputSize(renderer, &width, &height)
-        return Int(width)
-    }
-    public var height: Int {
-        var (width, height): (Int32, Int32) = (0, 0)
-        SDL_GetRendererOutputSize(renderer, &width, &height)
-        return Int(height)
-    }
-    
-    fileprivate init(_ renderer: OpaquePointer) { self.renderer = renderer }
-    
-    public mutating func clear(with color: Color = .black) {
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a)
-        SDL_RenderClear(renderer)
-    }
-    
-    public mutating func draw(_ drawable: Rectangle, x: Int, y: Int) {
-        SDL_SetRenderDrawColor(renderer, drawable.color.r, drawable.color.g, drawable.color.b, drawable.color.a)
-        var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: Int32(drawable.width), h: Int32(drawable.height))
-        SDL_RenderFillRect(renderer, &rect)
-    }
-    
-    public subscript(x: Int, y: Int) -> Color {
-        get {
-            var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: 1, h: 1)
-            var pixel: Color = .clear
-            SDL_RenderReadPixels(
-                renderer, &rect,
-                SDL_PIXELFORMAT_RGBA32.rawValue,
-                &pixel, Int32(MemoryLayout<Color>.stride)
-            )
-            return pixel
-        }
-        set {
-            // TODO(!): Combined hardware/software rendering. Draw in software until a hardware command,
-            //          at that point submit the buffer.
-            fatalError()
-            //var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: 1, h: 1)
-        }
-    }
-}
+///// An SDL based hardware renderer which provides an efficient way of drawing rectangles.
+//public struct SDLRenderer {
+//    public mutating func draw(_ drawable: some SDLDrawable, x: Int, y: Int) {
+//        drawable.draw(into: &self)
+//    }
+//}
+//
+///// A `Drawable` which can be efficiently rendered by the SDL hardware renderer.
+//public protocol SDLDrawable: Drawable {
+//    func draw(into renderer: inout SDLRenderer)
+//}
+
+#endif

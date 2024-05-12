@@ -1,5 +1,10 @@
 
 /// The internal color representation of the engine, an 8 bit RGBA structure.
+///
+/// To reduce complexity this is no longer a protocol. If I have a need for this in the future
+/// I can bring back the old generic implementation. The drawback would be that non specialized
+/// drawables would be unable to specialize their color representation and everything
+/// would suffer from significant performance loss.
 public struct Color: Equatable {
     public let r, g, b, a: UInt8
     
@@ -17,6 +22,19 @@ public struct Color: Equatable {
         self.a = a
     }
     
+    func blend(with other: Color, _ mode: BlendMode = .add) -> Color {
+        other
+    }
+    
+    public enum BlendMode {
+        case add
+        case subtract
+        case multiply
+        case divide
+    }
+}
+
+extension Color {
     public static let clear = Self(r: 0, g: 0, b: 0, a: 0)
     public static let black = Self(luminosity: 0)
     public static let white = Self(luminosity: 255)
@@ -57,21 +75,21 @@ public struct Color: Equatable {
     }
 }
 
-// TODO(!!!): Blending methods. The operators can forward to those if I decide to keep them.
-public extension Color {
-    // TODO(?): Does color need these in the first place?
-    // TODO(!): These methods are extremely likely to overflow.
-    //          I should decide on the correct way to handle this.
-    static func + (lhs: Self, rhs: Self) -> Self {
-        .init(r: lhs.r + rhs.r, g: lhs.g + rhs.g, b: lhs.b + rhs.b, a: lhs.a + rhs.a)
-    }
-    static func - (lhs: Self, rhs: Self) -> Self {
-        .init(r: lhs.r - rhs.r, g: lhs.g - rhs.g, b: lhs.b - rhs.b, a: lhs.a - rhs.a)
-    }
-    static func + (lhs: Self, rhs: UInt8) -> Self {
-        .init(r: lhs.r + rhs, g: lhs.g + rhs, b: lhs.b + rhs, a: lhs.a + rhs)
-    }
-    static func - (lhs: Self, rhs: UInt8) -> Self {
-        .init(r: lhs.r - rhs, g: lhs.g - rhs, b: lhs.b - rhs, a: lhs.a - rhs)
-    }
-}
+//// TODO(!!!): Blending methods. The operators can forward to those if I decide to keep them.
+//public extension Color {
+//    // TODO(?): Does color need these in the first place?
+//    // TODO(!): These methods are extremely likely to overflow.
+//    //          I should decide on the correct way to handle this.
+//    static func + (lhs: Self, rhs: Self) -> Self {
+//        .init(r: lhs.r + rhs.r, g: lhs.g + rhs.g, b: lhs.b + rhs.b, a: lhs.a + rhs.a)
+//    }
+//    static func - (lhs: Self, rhs: Self) -> Self {
+//        .init(r: lhs.r - rhs.r, g: lhs.g - rhs.g, b: lhs.b - rhs.b, a: lhs.a - rhs.a)
+//    }
+//    static func + (lhs: Self, rhs: UInt8) -> Self {
+//        .init(r: lhs.r + rhs, g: lhs.g + rhs, b: lhs.b + rhs, a: lhs.a + rhs)
+//    }
+//    static func - (lhs: Self, rhs: UInt8) -> Self {
+//        .init(r: lhs.r - rhs, g: lhs.g - rhs, b: lhs.b - rhs, a: lhs.a - rhs)
+//    }
+//}

@@ -1,4 +1,6 @@
 
+/// A work in progress representation of input.
+// TODO(!): This needs to be properly abstract to work across platforms.
 public struct Input {
     public let mouse: Mouse
     

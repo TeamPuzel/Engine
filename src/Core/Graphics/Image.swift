@@ -45,16 +45,8 @@ extension Image: ExpressibleByArrayLiteral {
     }
 }
 
-public enum Images {
-    public enum UI {
-        public static let cursor: Image = [
-            [.clear, .black, .clear, .clear, .clear, .clear],
-            [.black, .white, .black, .clear, .clear, .clear],
-            [.black, .white, .white, .black, .clear, .clear],
-            [.black, .white, .white, .white, .black, .clear],
-            [.black, .white, .white, .white, .white, .black],
-            [.black, .white, .white, .black, .black, .clear],
-            [.clear, .black, .black, .white, .black, .clear]
-        ]
-    }
+public extension Drawable {
+    /// Shorthand for flattening a nested structure of lazy drawables into a trivial image, for
+    /// cases where using memory and losing information is preferable to repeatedly recomputing all layers.
+    func flatten() -> Image { .init(self) }
 }

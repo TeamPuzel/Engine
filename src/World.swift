@@ -38,13 +38,11 @@ public final class World {
             HStack {
                 for i in 1...9 {
                     ZStack {
-                        hotbarSlot
+                        hotbarSlot.onClick { self.hearts = i }
                         Text("\(i)")
                     }
                 }
             }
-        }.onClick {
-            self.hearts += 1
         }
     }
     
@@ -53,7 +51,8 @@ public final class World {
         var image = Image(width: sdl.width, height: sdl.height)
         let instance = Self()
         
-        loop: while true {
+        loop:
+        while true {
             while let event = sdl.poll() {
                 switch event {
                     case .quit: break loop
