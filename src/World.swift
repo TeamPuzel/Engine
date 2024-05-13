@@ -10,36 +10,44 @@ let heart = UnsafeTGAPointer(UI_TGA).slice(x: 0, y: 16, width: 13, height: 12)
 
 @main
 public final class World {
-    public private(set) var plane: Plane!
-    public private(set) var player: Entity!
+    public init() {}
     
-    public init() {
-        self.plane = Plane.Material(world: self)
-        self.player = Entity.Human()
-        self.plane.add(entity: self.player)
-    }
+    private var prevTime: Int = getTime()
     
     public func frame(input: Input, renderer: inout Image) {
-        hotbar.traverse(input: input, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
+        let newTime = getTime()
+        let millis = Double(newTime - prevTime) / 1000000
+        prevTime = newTime
         
         renderer.clear(with: .init(luminosity: 35))
+        
+        hotbar.traverse(input: input, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
         renderer.draw(hotbar, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
+        
         renderer.text("\(input.mouse)", x: 2, y: 2)
+        renderer.text("Frame: \(millis)", x: 2, y: 8)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
-    var hearts: Int = 1
+    private var hearts: Int = 1
+    private var hover: Int = 0
     
     private var hotbar: some RecursiveDrawable {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 2) {
                 for _ in 1...hearts { heart }
             }
-            HStack {
+            HStack(spacing: 2) {
                 for i in 1...9 {
                     ZStack {
-                        hotbarSlot.onClick { self.hearts = i }
-                        Text("\(i)")
+                        hotbarSlot
+                            .onClick { self.hearts = i }
+                            .onHover { self.hover = i }
+                        if hover != i {
+                            Text("\(i)")
+                        } else {
+                            Text("Hey!")
+                        }
                     }
                 }
             }
@@ -66,3 +74,12 @@ public final class World {
         }
     }
 }
+
+import Darwin
+
+func getTime() -> Int {
+    var timespec = timespec()
+    clock_gettime(CLOCK_REALTIME, &timespec)
+    return timespec.tv_nsec
+}
+

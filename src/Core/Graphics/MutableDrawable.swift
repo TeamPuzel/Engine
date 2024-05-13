@@ -80,37 +80,3 @@ public extension MutableDrawable {
         }
     }
 }
-
-//public protocol HardwareDrawable<Renderer>: Drawable {
-//    associatedtype Renderer: HardwareRenderer
-//    func draw(into renderer: inout Renderer, x: Int, y: Int)
-//}
-//
-//public protocol HardwareRenderer {}
-//
-//public extension HardwareRenderer {
-//    mutating func draw(_ drawable: some HardwareDrawable<Self>, x: Int, y: Int) {
-//        drawable.draw(into: &self, x: x, y: y)
-//    }
-//}
-//
-//public struct SDLRenderer: HardwareRenderer {
-//    internal let handle: OpaquePointer
-//}
-//public struct OpenGLRenderer: HardwareRenderer {}
-//
-//extension Rectangle: HardwareDrawable {
-//    public typealias Renderer = OpenGLRenderer
-//    public func draw(into renderer: inout OpenGLRenderer, x: Int, y: Int) { fatalError() }
-//}
-//
-//import SDL
-//
-//extension Rectangle: HardwareDrawable {
-//    public func draw(into renderer: inout SDLRenderer, x: Int, y: Int) {
-//        var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: Int32(self.width), h: Int32(self.height))
-//        SDL_SetRenderDrawColor(renderer.handle, self.color.r, self.color.g, self.color.b, self.color.r)
-//        SDL_RenderFillRect(renderer.handle, &rect)
-//    }
-//}
-//

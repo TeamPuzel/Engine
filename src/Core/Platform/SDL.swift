@@ -32,7 +32,7 @@ public final class SDL {
         SDL_ShowCursor(SDL_DISABLE)
         
         guard let renderer = SDL_CreateRenderer(
-            window, -1, SDL_RENDERER_ACCELERATED.rawValue | SDL_RENDERER_PRESENTVSYNC.rawValue
+            window, -1, SDL_RENDERER_ACCELERATED.rawValue // | SDL_RENDERER_PRESENTVSYNC.rawValue
         ) else { throw .creatingRenderer }
         self.renderer = renderer
         
@@ -142,16 +142,113 @@ public final class SDL {
     }
 }
 
-///// An SDL based hardware renderer which provides an efficient way of drawing rectangles.
-//public struct SDLRenderer {
-//    public mutating func draw(_ drawable: some SDLDrawable, x: Int, y: Int) {
-//        drawable.draw(into: &self)
-//    }
-//}
-//
-///// A `Drawable` which can be efficiently rendered by the SDL hardware renderer.
-//public protocol SDLDrawable: Drawable {
-//    func draw(into renderer: inout SDLRenderer)
-//}
+public class SDLWindow {
+    fileprivate let handle: OpaquePointer
+    
+    private static var windowCount = 0
+    
+    public init(_ name: String? = nil, width: Int = 600, height: Int = 400) throws(InitError) {
+        if Self.windowCount == 0 {
+            guard SDL_Init(SDL_INIT_VIDEO) == 0 else { throw .initializingSDL }
+        }
+        
+        guard let handle = SDL_CreateWindow(
+            name,
+            Int32(SDL_WINDOWPOS_CENTERED_MASK),
+            Int32(SDL_WINDOWPOS_CENTERED_MASK),
+            Int32(width), Int32(height),
+            SDL_WINDOW_RESIZABLE.rawValue |
+            SDL_WINDOW_ALLOW_HIGHDPI.rawValue
+        ) else { throw .creatingWindow }
+        self.handle = handle
+        SDL_SetWindowMinimumSize(handle, Int32(width), Int32(height))
+        
+        Self.windowCount += 1
+    }
+    
+    deinit {
+        SDL_DestroyWindow(handle)
+        Self.windowCount -= 1
+        if Self.windowCount == 0 { SDL_Quit() }
+    }
+    
+    public func createRenderer() throws(SDLRenderer.InitError) -> SDLRenderer {
+        try .init(window: self)
+    }
+    
+    private static var event = SDL_Event()
+    
+    public func poll() -> Event? {
+        if SDL_PollEvent(&Self.event) > 0 { Self.eventMap(Self.event.type) } else { nil }
+    }
+    
+    private static func eventMap(_ raw: UInt32) -> Event {
+        switch raw {
+            case SDL_QUIT.rawValue: .quit
+            case _: .unknown(raw)
+        }
+    }
+    
+    public enum Event {
+        case quit
+        case unknown(UInt32)
+    }
+    
+    public enum InitError: Error {
+        case initializingSDL
+        case creatingWindow
+    }
+}
+
+/// An SDL based hardware renderer which provides an efficient way of drawing rectangles.
+public struct SDLRenderer: ~Copyable {
+    public private(set) weak var window: SDLWindow?
+    fileprivate let handle: OpaquePointer
+    
+    public init(window: SDLWindow) throws(InitError) {
+        guard let handle = SDL_CreateRenderer(
+            window.handle, -1, SDL_RENDERER_ACCELERATED.rawValue | SDL_RENDERER_PRESENTVSYNC.rawValue
+        ) else { throw .creating }
+        self.handle = handle
+        self.window = window
+    }
+    
+    deinit { SDL_DestroyRenderer(handle) }
+    
+    public mutating func clear(with color: Color = .black) {
+        SDL_SetRenderDrawColor(handle, color.r, color.g, color.b, color.a)
+        SDL_RenderClear(handle)
+    }
+    
+    public mutating func present() {
+        SDL_RenderPresent(handle)
+    }
+    
+    public mutating func draw(_ drawable: some SDLDrawable, x: Int, y: Int) throws(RenderError) {
+        guard window != nil else { throw .windowDoesNotExist }
+        drawable.draw(into: &self, x: x, y: y)
+    }
+    
+    public enum InitError: Error {
+        case creating
+    }
+    
+    public enum RenderError: Error {
+        case windowDoesNotExist
+    }
+}
+
+/// A `Drawable` which can be efficiently rendered by the SDL hardware renderer.
+public protocol SDLDrawable: Drawable {
+    func draw(into renderer: inout SDLRenderer, x: Int, y: Int)
+}
+
+extension Rectangle: SDLDrawable {
+    public func draw(into renderer: inout SDLRenderer, x: Int, y: Int) {
+        var rect = SDL_Rect(x: Int32(x), y: Int32(y), w: Int32(self.width), h: Int32(self.height))
+        SDL_SetRenderDrawColor(renderer.handle, self.color.r, self.color.g, self.color.b, self.color.r)
+        SDL_RenderFillRect(renderer.handle, &rect)
+    }
+}
 
 #endif

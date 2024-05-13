@@ -11,6 +11,7 @@ public struct DynamicDrawableBuilder {
     public static func buildEither(second component: [any Drawable]) -> [any Drawable] { component }
 }
 
+// Still figuring this out. Will make a massive performance difference.
 @resultBuilder
 public struct DrawableBuilder {
     public static func buildBlock<each D: Drawable>(_ drawables: repeat each D) -> DrawableTuple<repeat each D> {
@@ -262,7 +263,7 @@ public struct Rectangle: Drawable {
 // MARK: - Modifiers
 
 public extension Drawable {
-    func framed(width: Int? = nil, height: Int? = nil) -> Frame<Self> {
+    func frame(width: Int? = nil, height: Int? = nil) -> Frame<Self> {
         .init(self, width: width ?? self.width, height: height ?? self.height)
     }
 }
@@ -290,7 +291,7 @@ public struct Frame<Inner: Drawable>: Drawable {
 }
 
 public extension Drawable {
-    func padded(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
+    func pad(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
         .init(self, edges: edges, length: length)
     }
 }

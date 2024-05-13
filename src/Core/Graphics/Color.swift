@@ -22,6 +22,7 @@ public struct Color: Equatable {
         self.a = a
     }
     
+    // TODO(!): This does nothing yet.
     func blend(with other: Color, _ mode: BlendMode = .add) -> Color {
         other
     }
