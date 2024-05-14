@@ -10,14 +10,18 @@ let heart = UnsafeTGAPointer(UI_TGA).slice(x: 0, y: 16, width: 13, height: 12)
 
 @main
 public final class World {
-    public init() {}
+    public private(set) var floors: [Floor] = []
     
-    private var prevTime: Int = getTime()
+    public init() {
+        for depth in 0...15 {
+            self.floors.append(Floor.Empty(world: self))
+        }
+    }
+    
+    private var timer = Timer()
     
     public func frame(input: Input, renderer: inout Image) {
-        let newTime = getTime()
-        let millis = Double(newTime - prevTime) / 1000000
-        prevTime = newTime
+        let elapsed = timer.lap()
         
         renderer.clear(with: .init(luminosity: 35))
         
@@ -25,7 +29,7 @@ public final class World {
         renderer.draw(hotbar, x: (renderer.width - hotbar.width) / 2, y: renderer.height - hotbar.height - 4)
         
         renderer.text("\(input.mouse)", x: 2, y: 2)
-        renderer.text("Frame: \(millis)", x: 2, y: 8)
+        renderer.text("Frame: \(elapsed)", x: 2, y: 8)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
@@ -74,12 +78,3 @@ public final class World {
         }
     }
 }
-
-import Darwin
-
-func getTime() -> Int {
-    var timespec = timespec()
-    clock_gettime(CLOCK_REALTIME, &timespec)
-    return timespec.tv_nsec
-}
-

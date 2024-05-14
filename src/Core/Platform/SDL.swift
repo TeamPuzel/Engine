@@ -32,7 +32,7 @@ public final class SDL {
         SDL_ShowCursor(SDL_DISABLE)
         
         guard let renderer = SDL_CreateRenderer(
-            window, -1, SDL_RENDERER_ACCELERATED.rawValue // | SDL_RENDERER_PRESENTVSYNC.rawValue
+            window, -1, SDL_RENDERER_ACCELERATED.rawValue | SDL_RENDERER_PRESENTVSYNC.rawValue
         ) else { throw .creatingRenderer }
         self.renderer = renderer
         
@@ -142,10 +142,19 @@ public final class SDL {
     }
 }
 
-public class SDLWindow {
+public final class SDLWindow {
     fileprivate let handle: OpaquePointer
     
-    private static var windowCount = 0
+    public var width: Int {
+        var (width, height): (Int32, Int32) = (0, 0)
+        SDL_GetWindowSize(handle, &width, &height)
+        return Int(width)
+    }
+    public var height: Int {
+        var (width, height): (Int32, Int32) = (0, 0)
+        SDL_GetWindowSize(handle, &width, &height)
+        return Int(height)
+    }
     
     public init(_ name: String? = nil, width: Int = 600, height: Int = 400) throws(InitError) {
         if Self.windowCount == 0 {
@@ -176,10 +185,22 @@ public class SDLWindow {
         try .init(window: self)
     }
     
+    public var input: Input {
+        var (x, y): (Int32, Int32) = (0, 0)
+        let buttons = SDL_GetMouseState(&x, &y)
+        
+        let left = buttons & 1 << 0 == 1 << 0
+        let right = buttons & 1 << 2 == 1 << 2
+        
+        return .init(mouse: .init(x: Int(x), y: Int(y), left: left, right: right))
+    }
+    
+    private static var windowCount = 0
     private static var event = SDL_Event()
     
-    public func poll() -> Event? {
-        if SDL_PollEvent(&Self.event) > 0 { Self.eventMap(Self.event.type) } else { nil }
+    public static func poll() -> Event? {
+        assert(windowCount > 0)
+        return if SDL_PollEvent(&Self.event) > 0 { Self.eventMap(Self.event.type) } else { nil }
     }
     
     private static func eventMap(_ raw: UInt32) -> Event {
@@ -200,8 +221,12 @@ public class SDLWindow {
     }
 }
 
+public final class SDLTexture {
+    
+}
+
 /// An SDL based hardware renderer which provides an efficient way of drawing rectangles.
-public struct SDLRenderer: ~Copyable {
+public final class SDLRenderer {
     public private(set) weak var window: SDLWindow?
     fileprivate let handle: OpaquePointer
     
@@ -215,18 +240,19 @@ public struct SDLRenderer: ~Copyable {
     
     deinit { SDL_DestroyRenderer(handle) }
     
-    public mutating func clear(with color: Color = .black) {
+    public func clear(with color: Color = .black) {
         SDL_SetRenderDrawColor(handle, color.r, color.g, color.b, color.a)
         SDL_RenderClear(handle)
     }
     
-    public mutating func present() {
+    public func present() {
         SDL_RenderPresent(handle)
     }
     
-    public mutating func draw(_ drawable: some SDLDrawable, x: Int, y: Int) throws(RenderError) {
+    public func draw(_ drawable: some SDLDrawable, x: Int, y: Int) throws(RenderError) {
         guard window != nil else { throw .windowDoesNotExist }
-        drawable.draw(into: &self, x: x, y: y)
+        unowned var temp = self
+        drawable.draw(into: &temp, x: x, y: y)
     }
     
     public enum InitError: Error {
@@ -239,7 +265,7 @@ public struct SDLRenderer: ~Copyable {
 }
 
 /// A `Drawable` which can be efficiently rendered by the SDL hardware renderer.
-public protocol SDLDrawable: Drawable {
+public protocol SDLDrawable {
     func draw(into renderer: inout SDLRenderer, x: Int, y: Int)
 }
 

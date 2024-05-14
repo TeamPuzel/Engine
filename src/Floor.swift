@@ -1,5 +1,5 @@
 
-public class Plane {
+public class Floor {
     public unowned let world: World
     public private(set) var entities: Set<Entity> = []
     
@@ -13,14 +13,16 @@ public class Plane {
     }
     
     public final func add(entity: Entity) {
-        entity.plane = self
+        entity.floor = self
         entities.insert(entity)
     }
     
     public final func remove(entity: Entity) {
-        entity.plane = nil
+        entity.floor = nil
         guard entities.remove(entity) != nil else { return }
     }
     
-    public class Material: Plane {}
+    public class Empty: Floor {
+        
+    }
 }

@@ -1,6 +1,6 @@
 
 public class Entity {
-    public final unowned var plane: Plane!
+    public final unowned var floor: Floor!
     
     public final var position: Position
     

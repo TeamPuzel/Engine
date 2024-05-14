@@ -8,6 +8,13 @@ let package = Package(
     targets: [
         .target(name: "Assets", path: "assets/module"),
         .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
-        .executableTarget(name: "Rogue", dependencies: ["SDL", "Assets"], path: "src")
+        .executableTarget(
+            name: "Rogue",
+            dependencies: ["SDL", "Assets"],
+            path: "src",
+            swiftSettings: [
+                .enableUpcomingFeature("ExistentialAny")
+            ]
+        )
     ]
 )

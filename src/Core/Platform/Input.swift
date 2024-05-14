@@ -51,8 +51,8 @@ public struct Input {
 //    }
     
     public struct Mouse {
-        public var x, y: Int
-        public var left, right: Bool
+        public let x, y: Int
+        public let left, right: Bool
         
         public init(x: Int, y: Int, left: Bool, right: Bool) {
             self.x = x
