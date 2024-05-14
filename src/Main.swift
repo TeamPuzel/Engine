@@ -9,14 +9,8 @@ let hotbarSlot = UnsafeTGAPointer(UI_TGA).grid(itemWidth: 32, itemHeight: 32)[0,
 let heart = UnsafeTGAPointer(UI_TGA).slice(x: 0, y: 16, width: 13, height: 12)
 
 @main
-public final class World {
-    public private(set) var floors: [Floor] = []
-    
-    public init() {
-        for depth in 0...15 {
-            self.floors.append(Floor.Empty(world: self))
-        }
-    }
+public final class Game {
+    public init() {}
     
     private var timer = Timer()
     

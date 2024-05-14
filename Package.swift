@@ -3,14 +3,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "Rogue",
+    name: "Minecraft",
     platforms: [.macOS(.v14)],
     targets: [
-        .target(name: "Assets", path: "assets/module"),
         .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
+        .target(name: "GLAD", path: "lib/glad"),
+        .target(name: "Assets", path: "assets/module"),
         .executableTarget(
-            name: "Rogue",
-            dependencies: ["SDL", "Assets"],
+            name: "Minecraft",
+            dependencies: ["SDL", "GLAD", "Assets"],
             path: "src",
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny")
