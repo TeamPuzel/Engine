@@ -60,7 +60,6 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
     public let height: Int
     
     public init(_ inner: Inner, x: Int, y: Int, width: Int, height: Int) {
-        assert(x >= 0 && y >= 0)
         self.x = x
         self.y = y
         self.width = width
@@ -211,9 +210,18 @@ public struct TileFont<Source: Drawable> {
     }
 }
 
+// MARK: - Infinite
+
+public protocol InfiniteDrawable: Drawable {}
+
+public extension InfiniteDrawable {
+    var width: Int { Int.max }
+    var height: Int { Int.max }
+}
+
 // MARK: - Abstract
 
-/// A `Drawable` with no size which will panic on any subscript use.
+/// A `Drawable` with no size which will panic on subscript access.
 public struct EmptyDrawable: Drawable {
     public var width: Int { 0 }
     public var height: Int { 0 }
@@ -221,14 +229,11 @@ public struct EmptyDrawable: Drawable {
     public subscript(x: Int, y: Int) -> Color { fatalError() }
 }
 
-/// A uniform `Drawable` of `Int.max` proportions.
+/// A uniform `Drawable` of infinite proportions.
 ///
 /// Due to its effectively infinite size this drawable should never be drawn directly.
-// TODO(!): Is this useful? Will keep it for now and see.
-public struct InfiniteDrawable: Drawable {
+public struct UniformDrawable: InfiniteDrawable {
     public let color: Color
-    public var width: Int { Int.max }
-    public var height: Int { Int.max }
     public init(_ color: Color = .clear) { self.color = color }
     public subscript(x: Int, y: Int) -> Color { color }
 }

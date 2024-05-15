@@ -2,7 +2,7 @@
 /// A work in progress representation of input.
 // TODO(!): This needs to be properly abstract to work across platforms.
 public struct Input {
-    public let mouse: Mouse
+    public var mouse: Mouse
     
     public init(mouse: Mouse) {
         self.mouse = mouse
@@ -51,8 +51,8 @@ public struct Input {
 //    }
     
     public struct Mouse {
-        public let x, y: Int
-        public let left, right: Bool
+        public var x, y: Int
+        public var left, right: Bool
         
         public init(x: Int, y: Int, left: Bool, right: Bool) {
             self.x = x

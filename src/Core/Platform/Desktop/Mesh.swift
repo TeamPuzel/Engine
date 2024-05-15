@@ -7,7 +7,12 @@
 /// unsafe to implement, unless it is for a C struct (declared in a header file).
 ///
 /// I don't want to have to split my code up into multiple languages so I will ignore that,
-/// however it is important to note as it may cause issues.
+/// however it is important to note as it may eventually cause issues.
 public protocol Vertex {
     
+}
+
+/// A collection of vertices and their corresponding shaders and textures.
+public struct Mesh<V: Vertex> {
+    public var vertices: [V]
 }
