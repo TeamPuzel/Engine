@@ -1,6 +1,6 @@
 
 /// The most basic `Drawable`, supports mutability and can be rendered into.
-public struct Image: MutableDrawable {
+public struct Image: MutableDrawable, Sendable {
     public private(set) var data: [Color]
     public let width, height: Int
     

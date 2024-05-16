@@ -15,6 +15,7 @@ let package = Package(
             path: "src",
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny"),
+                .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("BuiltinModule")
             ]
         )

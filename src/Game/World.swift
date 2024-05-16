@@ -11,7 +11,7 @@ public actor World {
     private var entities: Set<Entity> = []
     private var primaryEntity: Entity!
     
-    public init(name: String, seed: UInt64) async {
+    public init(name: String, seed: UInt64 = .random(in: 1...UInt64.max)) async {
         self.name = name
         self.seed = seed
         

@@ -40,6 +40,7 @@ extension Vector2: Equatable where T: Equatable {}
 extension Vector2: Hashable where T: Hashable {}
 extension Vector2: Encodable where T: Encodable {}
 extension Vector2: Decodable where T: Decodable {}
+extension Vector2: Sendable where T: Sendable {}
 
 // MARK: - Vector3
 
@@ -80,6 +81,7 @@ extension Vector3: Equatable where T: Equatable {}
 extension Vector3: Hashable where T: Hashable {}
 extension Vector3: Encodable where T: Encodable {}
 extension Vector3: Decodable where T: Decodable {}
+extension Vector3: Sendable where T: Sendable {}
 
 // MARK: - Vector4
 
@@ -120,3 +122,4 @@ extension Vector4: Equatable where T: Equatable {}
 extension Vector4: Hashable where T: Hashable {}
 extension Vector4: Encodable where T: Encodable {}
 extension Vector4: Decodable where T: Decodable {}
+extension Vector4: Sendable where T: Sendable {}

@@ -42,7 +42,7 @@ let namedData = zip(names, data)
 print("Generating code...")
 
 func codegen(_ name: String, _ data: [UInt8]) -> (header: String, source: String) {
-    let header = "const unsigned char *\(name);\n"
+    let header = "const unsigned char *const \(name);\n"
     
     var source = ""
     source.append("unsigned char \(name)_DATA[] = {\n")
@@ -51,7 +51,7 @@ func codegen(_ name: String, _ data: [UInt8]) -> (header: String, source: String
         source.append(byte.description + ",")
     }
     source.append("\n};\n")
-    source.append("const unsigned char *\(name) = \(name)_DATA;\n")
+    source.append("const unsigned char *const \(name) = \(name)_DATA;\n")
     
     return (header, source)
 }

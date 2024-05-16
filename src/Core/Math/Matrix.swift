@@ -95,6 +95,8 @@ public struct Matrix<T: FloatingPointMath> {
 
 public enum MatrixRotationAxis { case pitch, yaw, roll }
 
+extension Matrix: Sendable where T: Sendable {}
+
 extension Matrix: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         withUnsafeBytes(of: lhs.data) { lhsPtr in

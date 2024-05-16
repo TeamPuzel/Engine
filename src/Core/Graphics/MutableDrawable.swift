@@ -16,7 +16,7 @@ public extension MutableDrawable {
         self[x, y] = self[x, y].blend(with: color, blendMode)
     }
     
-    mutating func clear(with color: Color = .black) {
+    mutating func clear(with color: Color = .clear) {
         for x in 0..<width {
             for y in 0..<height {
                 pixel(color, x: x, y: y)

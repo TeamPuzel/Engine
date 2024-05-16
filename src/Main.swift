@@ -10,20 +10,24 @@ fileprivate let terrain = UnsafeTGAPointer(TERRAIN_TGA)
 
 @main
 public final class Game {
-    public init() {}
-    
+    public let world: World
     private var timer = Timer()
+    
+    public init() async {
+        self.world = await World(name: "Test")
+    }
     
     public func frame(input: Input, renderer: inout Image) {
         let elapsed = timer.lap()
         
-        renderer.clear(with: .init(luminosity: 35))
+        renderer.clear()
         renderer.text("Frame: \(elapsed)", x: 2, y: 2)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
-    static func main() {
-        let instance = Self()
+    static func main() async {
+        let instance = await Self()
+        
         let delegate = AppDelegate(game: instance)
         let app = NSApplication.shared
         app.delegate = delegate
@@ -155,7 +159,9 @@ final class Renderer: NSObject, MTKViewDelegate {
     }
     
     func createPipelineState(device: any MTLDevice) {
-        let library = try! device.makeLibrary(source: String(cString: SHADERS_METAL), options: nil)
+        let compileOptions = MTLCompileOptions()
+        compileOptions.fastMathEnabled = true
+        let library = try! device.makeLibrary(source: String(cString: SHADERS_METAL), options: compileOptions)
         let vertexFunction = library.makeFunction(name: "vertex_passthrough")
         let fragmentFunction = library.makeFunction(name: "fragment_passthrough")
         
@@ -163,6 +169,13 @@ final class Renderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add;
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add;
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
         
         pipelineState = try! device.makeRenderPipelineState(descriptor: pipelineDescriptor)
     }
@@ -186,7 +199,8 @@ final class Renderer: NSObject, MTKViewDelegate {
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        parent.interface.resize(width: Int(size.width / 4), height: Int(size.height / 4))
+        let scale = parent.window.backingScaleFactor
+        parent.interface.resize(width: Int(size.width / 2 / scale), height: Int(size.height / 2 / scale))
         createTextureState(device: view.device!)
     }
     
@@ -201,6 +215,7 @@ final class Renderer: NSObject, MTKViewDelegate {
             if isMouseHidden { NSCursor.unhide() }
             isMouseHidden = false
         }
+        
         let mouse = NSPoint(x: upsideMouse.x, y: parent.window.contentView!.frame.height - upsideMouse.y)
         let btn = NSEvent.pressedMouseButtons
         let left = btn & 1 << 0 == 1 << 0
@@ -219,6 +234,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.setFragmentTexture(texture, index: 0)
         renderEncoder.setFragmentSamplerState(sampler, index: 0)
+        
         renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
         renderEncoder.endEncoding()
         

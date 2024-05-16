@@ -70,6 +70,8 @@ public struct DrawableSlice<Inner: Drawable>: Drawable {
     public subscript(x: Int, y: Int) -> Color { inner[x + self.x, y + self.y] }
 }
 
+extension DrawableSlice: Sendable where Inner: Sendable {}
+
 // TODO(!): Is this useful?
 //extension DrawableSlice: MutableDrawable where Inner: MutableDrawable {
 //    public subscript(x: Int, y: Int) -> Color {
@@ -98,6 +100,8 @@ public struct DrawableGrid<Inner: Drawable>: Drawable {
         inner.slice(x: x * itemWidth, y: y * itemHeight, width: itemWidth, height: itemHeight)
     }
 }
+
+extension DrawableGrid: Sendable where Inner: Sendable {}
 
 // MARK: - Mapping
 
@@ -128,6 +132,9 @@ public struct ColorMap<Inner: Drawable>: Drawable {
     public subscript(x: Int, y: Int) -> Color { transform(inner[x, y]) }
 }
 
+// Requires additional checks for the closure.
+//extension ColorMap: Sendable where Inner: Sendable {}
+
 public struct ColorBlend<Foreground: Drawable, Background: Drawable>: Drawable {
     public let foreground: Foreground
     public let background: Background
@@ -144,6 +151,8 @@ public struct ColorBlend<Foreground: Drawable, Background: Drawable>: Drawable {
         background[x, y].blend(with: background[x, y])
     }
 }
+
+extension ColorBlend: Sendable where Foreground: Sendable, Background: Sendable {}
 
 // MARK: - Transformation
 
@@ -178,6 +187,8 @@ public struct ScaledDrawable<Inner: Drawable>: Drawable {
     public subscript(x: Int, y: Int) -> Color { inner[x / scaleX, y / scaleY] }
 }
 
+extension ScaledDrawable: Sendable where Inner: Sendable {}
+
 // MARK: - Fonts
 
 /// A basic tile font, wraps a `DrawableGrid` and provides a mapping of characters
@@ -186,7 +197,7 @@ public struct ScaledDrawable<Inner: Drawable>: Drawable {
 //          the mapping of characters to abstract drawables.
 public struct TileFont<Source: Drawable> {
     public let inner: DrawableGrid<Source>
-    public let map: (Character) -> (x: Int, y: Int)?
+    public let map: @Sendable (Character) -> (x: Int, y: Int)?
     public let spacing: Int
     
     public init(
@@ -194,7 +205,7 @@ public struct TileFont<Source: Drawable> {
         charWidth: Int,
         charHeight: Int,
         spacing: Int = 1,
-        map: @escaping (Character) -> (x: Int, y: Int)?
+        map: @escaping @Sendable (Character) -> (x: Int, y: Int)?
     ) {
         self.inner = source.grid(itemWidth: charWidth, itemHeight: charHeight)
         self.spacing = spacing
@@ -209,6 +220,8 @@ public struct TileFont<Source: Drawable> {
         }
     }
 }
+
+extension TileFont: Sendable where Source: Sendable {}
 
 // MARK: - Infinite
 
@@ -229,6 +242,8 @@ public struct EmptyDrawable: Drawable {
     public subscript(x: Int, y: Int) -> Color { fatalError() }
 }
 
+extension EmptyDrawable: Sendable {}
+
 /// A uniform `Drawable` of infinite proportions.
 ///
 /// Due to its effectively infinite size this drawable should never be drawn directly.
@@ -237,6 +252,8 @@ public struct UniformDrawable: InfiniteDrawable {
     public init(_ color: Color = .clear) { self.color = color }
     public subscript(x: Int, y: Int) -> Color { color }
 }
+
+extension UniformDrawable: Sendable {}
 
 public extension Drawable {
     func unbounded(_ backup: Color) -> UnboundedDrawable<Self> { .init(self, backup: backup) }
@@ -262,6 +279,8 @@ public struct UnboundedDrawable<Inner: Drawable>: Drawable {
     }
 }
 
+extension UnboundedDrawable: Sendable where Inner: Sendable {}
+
 extension UnboundedDrawable: RecursiveDrawable {
     public var children: [Child] { [(0, 0, inner)] }
 }
@@ -282,6 +301,8 @@ public struct ThinUnboundedDrawable<Inner: Drawable>: Drawable {
         return inner[x, y]
     }
 }
+
+extension ThinUnboundedDrawable: Sendable where Inner: Sendable {}
 
 extension ThinUnboundedDrawable: RecursiveDrawable {
     public var children: [Child] { [(0, 0, inner)] }

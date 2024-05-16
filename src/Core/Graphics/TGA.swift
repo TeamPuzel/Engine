@@ -11,7 +11,10 @@
 ///
 /// # Safety
 /// Actually using this type is safe as long as the assumptions about its encoding hold true.
-public struct UnsafeTGAPointer: Drawable {
+///
+/// # Concurrency
+/// It's just an immutable view into const data so it can be shared across actors.
+public struct UnsafeTGAPointer: Drawable, @unchecked Sendable {
     private let base: UnsafeRawPointer
     
     public init(_ base: UnsafeRawPointer) { self.base = base }

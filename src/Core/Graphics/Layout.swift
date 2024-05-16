@@ -222,6 +222,9 @@ public struct ZStack: RecursiveDrawable {
     public enum Alignment { case top, bottom, centered }
 }
 
+// Impossible with existentials
+//extension ZStack: Sendable {}
+
 // MARK: - Text
 
 public struct Text: Drawable {
@@ -241,6 +244,8 @@ public struct Text: Drawable {
     public subscript(x: Int, y: Int) -> Color { image[x, y] }
 }
 
+extension Text: Sendable {}
+
 // MARK: - Shapes
 
 public struct Rectangle: Drawable {
@@ -259,6 +264,8 @@ public struct Rectangle: Drawable {
         return color
     }
 }
+
+extension Rectangle: Sendable {}
 
 // MARK: - Modifiers
 
@@ -289,6 +296,8 @@ public struct Frame<Inner: Drawable>: Drawable {
         }
     }
 }
+
+extension Frame: Sendable where Inner: Sendable {}
 
 public extension Drawable {
     func pad(_ edges: Edges = .all, by length: Int = 0) -> Padding<Self> {
@@ -337,7 +346,9 @@ public struct Padding<Inner: Drawable>: Drawable {
     }
 }
 
-public struct Edges: OptionSet {
+extension Padding: Sendable where Inner: Sendable {}
+
+public struct Edges: OptionSet, Sendable {
     public let rawValue: UInt8
     
     public init(rawValue: UInt8) { self.rawValue = rawValue }
@@ -369,6 +380,8 @@ public struct DrawableTuple<each D: Drawable> {
     public let drawables: (repeat each D)
     public init(_ drawables: repeat each D) { self.drawables = (repeat each drawables) }
 }
+
+extension DrawableTuple: Sendable where repeat each D: Sendable {}
 
 /// A `Drawable` which contains other drawables and exposes them for traversal as a tuple of
 /// drawables. This is used to retroactively understand layouts for event processing.
@@ -424,6 +437,9 @@ public struct ClickProcessing<Inner: Drawable>: ProcessingDrawable {
     }
 }
 
+// Closure again
+//extension ClickProcessing: Sendable where Inner: Sendable {}
+
 public struct HoverProcessing<Inner: Drawable>: ProcessingDrawable {
     public let inner: Inner
     public let hover: () -> Void
@@ -450,3 +466,6 @@ public struct HoverProcessing<Inner: Drawable>: ProcessingDrawable {
         }
     }
 }
+
+// Closure problem
+//extension HoverProcessing: Sendable where Inner: Sendable {}
