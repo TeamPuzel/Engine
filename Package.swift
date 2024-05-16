@@ -14,7 +14,8 @@ let package = Package(
             dependencies: ["SDL", "GLAD", "Assets"],
             path: "src",
             swiftSettings: [
-                .enableUpcomingFeature("ExistentialAny")
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableExperimentalFeature("BuiltinModule")
             ]
         )
     ]

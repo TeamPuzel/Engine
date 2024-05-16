@@ -3,6 +3,7 @@
 import GLAD
 import SDL
 
+/// An OpenGL window backed by SDL for relative platform independence.
 @MainActor
 public final class Window {
     private let window: OpaquePointer
@@ -34,6 +35,7 @@ public final class Window {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, Int32(SDL_GL_CONTEXT_PROFILE_CORE.rawValue))
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
+//        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, Int32(SDL_GL_CONTEXT_DEBUG_FLAG.rawValue))
         SDL_GL_SetSwapInterval(1)
         
         guard let context = SDL_GL_CreateContext(window) else {
@@ -64,14 +66,11 @@ public final class Window {
     }
     
     deinit {
-        // SAFETY: Copy values into the task, it will run past the deinit and cause UB otherwise.
-        let task = Task.detached { @MainActor in
-            let window = self.window
-            let context = self.context
-            SDL_GL_DeleteContext(context)
-            SDL_DestroyWindow(window)
-            SDL_Quit()
-        }
+        let window = self.window
+        let context = self.context
+        SDL_GL_DeleteContext(context)
+        SDL_DestroyWindow(window)
+        SDL_Quit()
     }
     
     public var width: Int {
@@ -117,6 +116,30 @@ public final class Window {
         }
     }
     
+    public func draw<V>(_ object: DrawObject<V>, matrix: Matrix<Float> = .identity) {
+        precondition(object.window === self)
+        object.bind()
+        
+        let sampler = object.shader.uniformLocation(name: "texture_id")
+        let transform = object.shader.uniformLocation(name: "transform")
+        glad_glUniform1i(sampler, 0)
+        
+        // What the heck
+        withUnsafePointer(to: matrix.data) { ptr in
+            let raw = UnsafeRawBufferPointer(start: ptr, count: 4 * 4)
+            raw.withMemoryRebound(to: Float.self) { ptr in
+                glad_glUniformMatrix4fv(
+                    transform,
+                    1, GLboolean(GL_TRUE),
+                    ptr.baseAddress
+                )
+            }
+        }
+        
+        glad_glDrawArrays(GLenum(GL_TRIANGLES), 0, object.syncedCount)
+        object.unbind()
+    }
+    
     public enum Event {
         case quit
         case unknown(UInt32)
@@ -134,26 +157,26 @@ public final class Window {
 public final class Texture {
     // SAFETY: This has to be a strong reference, if the window is deinitialized first
     // it will take SDL and OpenGL with it, potentially preventing correct deinit of the texture.
-    private let window: Window
+    fileprivate let window: Window
     fileprivate let handle: UInt32
     
-    init(_ window: Window, image: borrowing Image) throws(InitError) {
+    public init(_ window: Window) throws(InitError) {
         self.window = window
         
         var handle: UInt32 = 0
         glad_glGenTextures(1, &handle)
         guard handle != 0 else { throw .creatingTexture }
         self.handle = handle
-        
+    }
+    
+    public convenience init(_ window: Window, image: borrowing Image) throws(InitError) {
+        try self.init(window)
         self.write(image: image)
     }
     
     deinit {
-        // SAFETY: Copy values into the task, it will run past the deinit and cause UB otherwise.
-        Task.detached { @MainActor in
-            var handle = self.handle
-            glad_glDeleteTextures(1, &handle)
-        }
+        var handle = self.handle
+        glad_glDeleteTextures(1, &handle)
     }
     
     public func bind() { glad_glBindTexture(GLenum(GL_TEXTURE_2D), handle) }
@@ -161,7 +184,6 @@ public final class Texture {
     
     public func write(image: borrowing Image) {
         self.bind()
-        defer { self.unbind() }
         
         glad_glTexImage2D(
             GLenum(GL_TEXTURE_2D),
@@ -184,6 +206,169 @@ public final class Texture {
     public enum InitError: Error {
         case creatingTexture
     }
+}
+
+@MainActor
+public final class Shader {
+    fileprivate let window: Window
+    fileprivate let handle: UInt32
+    
+    public init(_ window: Window, vertex: String, fragment: String) throws(CompileError) {
+        self.window = window
+        
+        let handle = glad_glCreateProgram()
+        
+        let v = try Self.compile(vertex, as: .vertex)
+        let f = try Self.compile(fragment, as: .fragment)
+        
+        glad_glAttachShader(handle, v)
+        glad_glAttachShader(handle, f)
+        glad_glLinkProgram(handle)
+        glad_glValidateProgram(handle)
+        
+        glad_glDeleteShader(v)
+        glad_glDeleteShader(f)
+        
+        self.handle = handle
+    }
+    
+    deinit {
+        let handle = handle
+        glad_glDeleteProgram(handle)
+    }
+    
+    public func bind() {
+        glad_glUseProgram(handle)
+    }
+    
+    public func unbind() {
+        glad_glUseProgram(0)
+    }
+    
+    public func uniformLocation(name: String) -> Int32 {
+        self.bind()
+        return glad_glGetUniformLocation(handle, name)
+    }
+    
+    private static func compile(_ source: String, as kind: Kind) throws(CompileError) -> UInt32 {
+        let id = glad_glCreateShader(GLenum(kind == .vertex ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER))
+        source.withCString { ptr in
+            withUnsafePointer(to: ptr) { ptrPtr in // I swear OpenGL is something else
+                glad_glShaderSource(id, 1, ptrPtr, nil)
+            }
+        }
+        glad_glCompileShader(id)
+        
+        var result: Int32 = 0
+        glad_glGetShaderiv(id, GLenum(GL_COMPILE_STATUS), &result)
+        guard result != 0 else {
+            var count: Int32 = 0
+            glad_glGetShaderiv(id, GLenum(GL_INFO_LOG_LENGTH), &count)
+            let message = withUnsafeTemporaryAllocation(of: CChar.self, capacity: Int(count + 1)) { ptr in
+                glad_glGetShaderInfoLog(id, count, &count, ptr.baseAddress)
+                return String(cString: ptr.baseAddress!)
+            }
+            throw kind == .vertex ? .vertex(message) : .fragment(message)
+        }
+        
+        return id
+    }
+    
+    private enum Kind { case vertex, fragment }
+    
+    public enum CompileError: Error {
+        case vertex(String)
+        case fragment(String)
+    }
+}
+
+public struct VertexColor: BitwiseCopyable {
+    public var r, g, b, a: Float
+    
+    public init(r: Float, g: Float, b: Float, a: Float) {
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+    }
+    
+    public init(luminosity: Float, a: Float = 1) {
+        self.r = luminosity
+        self.g = luminosity
+        self.b = luminosity
+        self.a = a
+    }
+}
+
+/// An *unsafe* protocol for vertex types.
+///
+/// # Safety
+/// A vertex must be a trivial type as it will be memory copied onto the GPU.
+/// Since memory representation of Swift structs is technically not guaranteed it is inherently
+/// unsafe to implement, unless it is for a C struct (declared in a header file).
+///
+/// I don't want to have to split my code up into multiple languages so I will ignore that,
+/// however it is important to note as it may eventually cause issues.
+public protocol Vertex: BitwiseCopyable {
+    static func bindLayout()
+}
+
+@MainActor
+public final class DrawObject<V: Vertex> {
+    fileprivate let window: Window
+    fileprivate let handle: UInt32
+    public let texture: Texture
+    public let shader: Shader
+    public var mesh: [V]
+    fileprivate var syncedCount: Int32 = 0
+    
+    public init(_ window: Window, texture: Texture, shader: Shader, mesh: [V]) throws(DrawObjectInitError) {
+        precondition(window === texture.window && window === shader.window)
+        self.window = window
+        self.texture = texture
+        self.mesh = mesh
+        self.shader = shader
+        
+        var handle: UInt32 = 0
+        glad_glGenBuffers(1, &handle)
+        guard handle != 0 else { throw .creatingBuffer }
+        self.handle = handle
+    }
+    
+    deinit {
+        var handle = self.handle
+        glad_glDeleteBuffers(1, &handle)
+    }
+    
+    public func sync() {
+        self.bind()
+        mesh.withUnsafeBytes { ptr in
+            glad_glBufferData(
+                GLenum(GL_ARRAY_BUFFER),
+                MemoryLayout<V>.stride * mesh.count,
+                ptr.baseAddress,
+                GLenum(GL_DYNAMIC_DRAW)
+            )
+        }
+        syncedCount = Int32(mesh.count)
+    }
+    
+    public func bind() {
+        glad_glBindBuffer(GLenum(GL_ARRAY_BUFFER), handle)
+        V.bindLayout()
+        texture.bind()
+        shader.bind()
+    }
+    
+    public func unbind() {
+        glad_glBindBuffer(GLenum(GL_ARRAY_BUFFER), 0)
+        texture.unbind()
+        shader.unbind()
+    }
+}
+
+public enum DrawObjectInitError: Error {
+    case creatingBuffer
 }
 
 #endif

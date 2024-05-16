@@ -5,7 +5,7 @@
 /// I can bring back the old generic implementation. The drawback would be that non specialized
 /// drawables would be unable to specialize their color representation and everything
 /// would suffer from significant performance loss.
-public struct Color: Equatable {
+public struct Color: Equatable, BitwiseCopyable {
     public let r, g, b, a: UInt8
     
     public init(r: UInt8, g: UInt8, b: UInt8, a: UInt8 = 255) {

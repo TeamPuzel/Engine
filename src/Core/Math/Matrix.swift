@@ -1,5 +1,7 @@
 
-public struct Matrix<T: FloatingPoint> {
+import Builtin
+
+public struct Matrix<T: FloatingPointMath> {
     public typealias Storage = ((T, T, T, T), (T, T, T, T), (T, T, T, T), (T, T, T, T))
     public let data: Storage
     
@@ -23,4 +25,122 @@ public struct Matrix<T: FloatingPoint> {
             (l4 ** r1, l4 ** r2, l4 ** r3, l4 ** r4)
         ))
     }
+    
+    public static var identity: Self {
+        .init((
+            (1, 0, 0, 0),
+            (0, 1, 0, 0),
+            (0, 0, 1, 0),
+            (0, 0, 0, 1)
+        ))
+    }
+    
+    public static func translation(x: T, y: T, z: T) -> Self {
+        .init((
+            (1, 0, 0, 0),
+            (0, 1, 0, 0),
+            (0, 0, 1, 0),
+            (x, y, z, 1)
+        ))
+    }
+    
+    public static func scaling(x: T, y: T, z: T) -> Self {
+        .init((
+            (x, 0, 0, 0),
+            (0, y, 0, 0),
+            (0, 0, z, 0),
+            (0, 0, 0, 1)
+        ))
+    }
+    
+    public static func rotation(axis: MatrixRotationAxis, angle: T) -> Self {
+        let a = degreesToRadians(angle)
+        return switch axis {
+            case .pitch:
+                .init((
+                    (1, 0, 0, 0),
+                    (0, a.cos, -a.sin, 0),
+                    (0, a.sin, a.cos, 0),
+                    (0, 0, 0, 1)
+                ))
+            case .yaw:
+                .init((
+                    (a.cos, 0, a.sin, 0),
+                    (0, 1, 0, 0),
+                    (-a.sin, 0, a.cos, 0),
+                    (0, 0, 0, 1)
+                ))
+            case .roll:
+                .init((
+                    (a.cos, -a.sin, 0, 0),
+                    (a.sin, a.cos, 0, 0),
+                    (0, 0, 1, 0),
+                    (0, 0, 0, 1)
+                ))
+        }
+    }
+    
+    public static func projection(width: T, height: T, fov: T, near: T, far: T) -> Self {
+        let aspect = height / width
+        let q = far / (far - near)
+        let f = 1 / (degreesToRadians(fov) / 2).tan
+        return .init((
+            (aspect * f, 0, 0, 0),
+            (0, f, 0, 0),
+            (0, 0, q, 1),
+            (0, 0, -near * q, 0)
+        ))
+    }
+}
+
+public enum MatrixRotationAxis { case pitch, yaw, roll }
+
+extension Matrix: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        withUnsafeBytes(of: lhs.data) { lhsPtr in
+            withUnsafeBytes(of: rhs.data) { rhsPtr in
+                for offset in 0..<(4 * 4) {
+                    if lhsPtr[offset] != rhsPtr[offset] { return false }
+                }
+                return true
+            }
+        }
+    }
+}
+
+public func degreesToRadians<T: FloatingPoint>(_ value: T) -> T { value * T.pi / 180 }
+
+public protocol FloatingPointMath: FloatingPoint {
+    var sin: Self { get }
+    var cos: Self { get }
+    var tan: Self { get }
+}
+
+extension Float32: FloatingPointMath {
+    @_transparent
+    public var sin: Self { Self(Builtin.int_sin_FPIEEE32(self._value)) }
+    @_transparent
+    public var cos: Self { Self(Builtin.int_cos_FPIEEE32(self._value)) }
+    
+    #if arch(x86_64)
+    @_transparent
+    public var tan: Self { Self(Builtin.int_tan_FPIEEE32(self._value)) }
+    #else
+    @_transparent
+    public var tan: Self { self.sin / self.cos }
+    #endif
+}
+
+extension Float64: FloatingPointMath {
+    @_transparent
+    public var sin: Self { Self(Builtin.int_sin_FPIEEE64(self._value)) }
+    @_transparent
+    public var cos: Self { Self(Builtin.int_cos_FPIEEE64(self._value)) }
+    #if arch(x86_64)
+    @_transparent
+    public var tan: Self { Self(Builtin.int_tan_FPIEEE64(self._value)) }
+    #else
+    @_transparent
+    public var tan: Self { self.sin / self.cos }
+    #endif
 }
