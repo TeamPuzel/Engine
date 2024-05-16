@@ -6,12 +6,12 @@ let package = Package(
     name: "Minecraft",
     platforms: [.macOS(.v14)],
     targets: [
-        .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
-        .target(name: "GLAD", path: "lib/glad"),
+//        .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
+//        .target(name: "GLAD", path: "lib/glad"),
         .target(name: "Assets", path: "assets/module"),
         .executableTarget(
             name: "Minecraft",
-            dependencies: ["SDL", "GLAD", "Assets"],
+            dependencies: ["Assets"],
             path: "src",
             swiftSettings: [
                 .enableUpcomingFeature("ExistentialAny"),
