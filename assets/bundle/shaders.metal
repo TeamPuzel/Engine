@@ -33,3 +33,20 @@ fragment float4 fragment_passthrough(
 ) {
     return tex.sample(sam, in.textureCoordinates);
 }
+
+struct BlockVertex {
+    float x;
+    float y;
+    float z;
+    float u;
+    float v;
+    float r;
+    float g;
+    float b;
+    float a;
+};
+
+struct BlockVertexOut {
+    float4 position [[position]];
+    float2 textureCoordinates;
+};

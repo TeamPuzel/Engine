@@ -13,8 +13,8 @@ public final class Game {
     public let world: World
     private var timer = Timer()
     
-    public init() async {
-        self.world = await World(name: "Test")
+    public init() {
+        self.world = World(name: "Test")
     }
     
     public func frame(input: Input, renderer: inout Image) {
@@ -25,8 +25,8 @@ public final class Game {
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
-    static func main() async {
-        let instance = await Self()
+    static func main() {
+        let instance = Self()
         
         let delegate = AppDelegate(game: instance)
         let app = NSApplication.shared
@@ -37,7 +37,9 @@ public final class Game {
     }
 }
 
-public struct PassthroughVertex: BitwiseCopyable {
+// MARK: - Vertices
+
+public struct PassthroughVertex: Hashable, Sendable, BitwiseCopyable {
     public let x, y, z, u, v: Float
     
     public init(x: Float, y: Float, z: Float, u: Float, v: Float) {
@@ -48,6 +50,24 @@ public struct PassthroughVertex: BitwiseCopyable {
         self.v = v
     }
 }
+
+public struct BlockVertex: Hashable, Sendable, BitwiseCopyable {
+    public let x, y, z, u, v, r, g, b, a: Float
+    
+    public init(x: Float, y: Float, z: Float, u: Float, v: Float, r: Float, g: Float, b: Float, a: Float) {
+        self.x = x
+        self.y = y
+        self.z = z
+        self.u = u
+        self.v = v
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+    }
+}
+
+// MARK: - Application
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     public var game: Game
@@ -93,6 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
+
+// MARK: - Metal Renderer
 
 final class Renderer: NSObject, MTKViewDelegate {
     private let parent: AppDelegate
