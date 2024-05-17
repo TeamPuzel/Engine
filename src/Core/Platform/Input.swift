@@ -1,7 +1,7 @@
 
 /// A work in progress representation of input.
 // TODO(!): This needs to be properly abstract to work across platforms.
-public struct Input {
+public struct Input: Sendable, BitwiseCopyable {
     public var mouse: Mouse
     
     public init(mouse: Mouse) {
@@ -50,7 +50,7 @@ public struct Input {
 //        self.keys = UnsafeBufferPointer(start: rawKeys, count: Int(count))
 //    }
     
-    public struct Mouse {
+    public struct Mouse: Sendable, BitwiseCopyable {
         public var x, y: Int
         public var left, right: Bool
         

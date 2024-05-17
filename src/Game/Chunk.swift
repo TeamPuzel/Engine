@@ -6,7 +6,10 @@ public final class Chunk {
     public private(set) var isGenerated = false
     public private(set) var mesh: [BlockVertex] = []
     
-    public static let side = 32
+    public private(set) var meshTask: Task<Void, Never>?
+    public private(set) var sortTask: Task<Void, Never>?
+    
+    public static let side = 16
     public static let height = 256
     public static var blocksPerChunk: Int { side * side * height }
     
@@ -32,17 +35,38 @@ public final class Chunk {
         self.isGenerated = true
     }
     
-    // TODO(!!): Concurrency, spawn a task which will call back to submit
+    /// Recalculates the mesh of the chunk in the background.
+    ///
+    /// It does this by spawning a task which on completion will call back into the actor and
+    /// submit the new mesh. It needs to copy the blocks in to avoid locking the actor.
     public func remesh() {
         // Write to a new buffer concurrently to allow drawing the old one
         var buffer: [BlockVertex] = []
-        for block in blocks { block.mesh(faces: .all, into: &buffer) }
+        buffer.reserveCapacity(Self.blocksPerChunk * 36 / 2)
+        
+        for x in 0..<Self.side {
+            for z in 0..<Self.side {
+                for y in 0..<Self.height {
+                    self[x, y, z].mesh(faces: .all, x: Float(x), y: Float(y), z: Float(z), into: &buffer)
+                }
+            }
+        }
+        
         self.mesh = buffer
     }
     
+    /// Sorts the vertices in the background.
+    ///
+    /// It is intended to re-sort already mostly sorted vertices, must not take too long.
+    public func resort() {
+//        sortTask = Task.detached {
+//            
+//        }
+    }
+    
     public subscript(x: Int, y: Int, z: Int) -> Block {
-        get { fatalError() }
-        set { fatalError() }
+        get { blocks[(x * Self.side * Self.side) + (z * Self.side) + y] }
+        set { blocks[(x * Self.side * Self.side) + (z * Self.side) + y] = newValue }
     }
     
     @_disfavoredOverload

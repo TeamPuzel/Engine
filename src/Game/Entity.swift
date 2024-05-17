@@ -3,12 +3,16 @@ public class Entity {
     public var position: Position
     public var orientation: Orientation
     
-    public init(x: Double, y: Double, z: Double, orientation: Orientation = .init()) {
+    public init(x: Float, y: Float, z: Float, orientation: Orientation = .init()) {
         self.position = .init(x: x, y: y, z: z)
         self.orientation = orientation
     }
     
-    public typealias Position = Vector3<Double>
+    public func primaryUpdate(input: Input) {
+        
+    }
+    
+    public typealias Position = Vector3<Float>
     
     public struct Orientation: Hashable {
         public var pitch, yaw, roll: Float

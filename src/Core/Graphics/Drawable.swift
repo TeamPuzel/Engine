@@ -48,6 +48,11 @@ public extension Drawable {
     func grid(itemWidth: Int, itemHeight: Int) -> DrawableGrid<Self> {
         .init(self, itemWidth: itemWidth, itemHeight: itemHeight)
     }
+    
+    /// Creates a lazy square grid from the drawable.
+    func grid(itemSide: Int) -> SquareDrawableGrid<Self> {
+        .init(self, itemSide: itemSide)
+    }
 }
 
 /// A lazy 2d slice of another abstract `Drawable`, and a `Drawable` in itself.
@@ -102,6 +107,28 @@ public struct DrawableGrid<Inner: Drawable>: Drawable {
 }
 
 extension DrawableGrid: Sendable where Inner: Sendable {}
+
+/// A lazy grid of equal size `Drawable` slices, for example a sprite sheet, tile map or tile font.
+/// It is a more lightweight variant of `DrawableGrid` optimised for storing square items.
+public struct SquareDrawableGrid<Inner: Drawable>: Drawable {
+    public let inner: Inner
+    public var width: Int { inner.width }
+    public var height: Int { inner.height }
+    public let itemSide: Int
+    
+    public init(_ inner: Inner, itemSide: Int) {
+        self.inner = inner
+        self.itemSide = itemSide
+    }
+    
+    @_disfavoredOverload
+    public subscript(x: Int, y: Int) -> Color { inner[x, y] }
+    public subscript(x: Int, y: Int) -> DrawableSlice<Inner> {
+        inner.slice(x: x * itemSide, y: y * itemSide, width: itemSide, height: itemSide)
+    }
+}
+
+extension SquareDrawableGrid: Sendable where Inner: Sendable {}
 
 // MARK: - Mapping
 
