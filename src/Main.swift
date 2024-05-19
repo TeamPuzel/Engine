@@ -3,7 +3,7 @@ import Cocoa
 import MetalKit
 import Assets
 
-fileprivate let interface = UnsafeTGAPointer(UI_TGA).grid(itemWidth: 16, itemHeight: 16)
+fileprivate let interface = UnsafeTGAPointer(UI_TGA).grid(itemSide: 16)
 fileprivate let cursor = interface[0, 0]
 fileprivate let cursorPressed = interface[1, 0]
 fileprivate let terrain = UnsafeTGAPointer(TERRAIN_TGA)
@@ -11,6 +11,7 @@ fileprivate let terrain = UnsafeTGAPointer(TERRAIN_TGA)
 @main
 public final class Game {
     public let world: World
+    
     private var timer = Timer()
     
     public init() {
@@ -24,12 +25,13 @@ public final class Game {
         world.frame(input: input, renderer: &renderer)
         
         renderer.text("Frame: \(elapsed)", x: 2, y: 2)
+        renderer.text("Position: \(world.primaryPosition)", x: 2, y: 2 + 6)
+        renderer.text("Rotation: \(world.primaryOrientation)", x: 2, y: 2 + 6 * 2)
         renderer.draw(input.mouse.left ? cursorPressed : cursor, x: input.mouse.x - 1, y: input.mouse.y - 1)
     }
     
     static func main() {
         let instance = Self()
-        
         let delegate = AppDelegate(game: instance)
         let app = NSApplication.shared
         app.delegate = delegate
@@ -43,29 +45,13 @@ public final class Game {
 public struct PassthroughVertex: Hashable, Sendable, BitwiseCopyable {
     public let x, y, z, u, v: Float
     
-    public init(x: Float, y: Float, z: Float, u: Float, v: Float) {
-        self.x = x
-        self.y = y
-        self.z = z
-        self.u = u
-        self.v = v
-    }
+    public var position: Vector3<Float> { .init(x: x, y: y, z: z) }
 }
 
 public struct BlockVertex: Hashable, Sendable, BitwiseCopyable {
     public let x, y, z, u, v, r, g, b, a: Float
     
-    public init(x: Float, y: Float, z: Float, u: Float, v: Float, r: Float, g: Float, b: Float, a: Float) {
-        self.x = x
-        self.y = y
-        self.z = z
-        self.u = u
-        self.v = v
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
-    }
+    public var position: Vector3<Float> { .init(x: x, y: y, z: z) }
 }
 
 // MARK: - Application
@@ -75,7 +61,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     public var interface: Image!
     
     public var window: NSWindow!
-    private var metalView: MTKView!
     private var renderer: Renderer!
     
     public init(game: Game) { self.game = game }
@@ -101,9 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(main)
         NSApplication.shared.mainMenu = menu
         
-        self.metalView = MTKView(frame: window.contentView!.bounds, device: MTLCreateSystemDefaultDevice())
+        let metalView = MTKView(frame: window.contentView!.bounds, device: MTLCreateSystemDefaultDevice())
         metalView.autoresizingMask = [.width, .height]
         metalView.preferredFramesPerSecond = .max
+        metalView.depthStencilPixelFormat = .depth32Float
         window.contentView = metalView
         
         self.renderer = Renderer(self, device: metalView.device!)
@@ -120,10 +106,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @MainActor
 final class Renderer: NSObject, MTKViewDelegate {
-    private let parent: AppDelegate
+    private unowned let parent: AppDelegate
     private var commandQueue: (any MTLCommandQueue)!
     
     private var shaderLibrary: (any MTLLibrary)!
+    
+    private var depthStencilState: (any MTLDepthStencilState)!
     
     private var interfacePipelineState: (any MTLRenderPipelineState)!
     private var interfaceVertexBuffer: (any MTLBuffer)!
@@ -144,6 +132,8 @@ final class Renderer: NSObject, MTKViewDelegate {
         commandQueue = device.makeCommandQueue()
         createShaderLibrary(device: device)
         
+        createDepthStencilState(device: device)
+        
         createInterfacePipelineState(device: device)
         createTerrainPipelineState(device: device)
 
@@ -161,7 +151,13 @@ final class Renderer: NSObject, MTKViewDelegate {
         )
     }
     
-    // SPAGHETTI: Reaching for the atlas indirectly to avoid a potential mismatch.
+    func createDepthStencilState(device: any MTLDevice) {
+        let depthStencilDescriptor = MTLDepthStencilDescriptor()
+        depthStencilDescriptor.isDepthWriteEnabled = true
+        depthStencilDescriptor.depthCompareFunction = .less
+        self.depthStencilState = device.makeDepthStencilState(descriptor: depthStencilDescriptor)
+    }
+    
     func createTerrainTextureState(device: any MTLDevice) {
         let textureDescriptor = MTLTextureDescriptor()
         textureDescriptor.pixelFormat = .rgba8Unorm
@@ -254,13 +250,14 @@ final class Renderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        pipelineDescriptor.depthAttachmentPixelFormat = .depth32Float // ???????????
         
         self.interfacePipelineState = try! device.makeRenderPipelineState(descriptor: pipelineDescriptor)
     }
@@ -273,13 +270,14 @@ final class Renderer: NSObject, MTKViewDelegate {
         pipelineDescriptor.vertexFunction = vertexFunction
         pipelineDescriptor.fragmentFunction = fragmentFunction
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true;
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add;
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add;
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha;
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha;
+        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
+        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = .add
+        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = .add
+        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha
+        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        pipelineDescriptor.depthAttachmentPixelFormat = .depth32Float
         
         self.terrainPipelineState = try! device.makeRenderPipelineState(descriptor: pipelineDescriptor)
     }
@@ -348,26 +346,33 @@ final class Renderer: NSObject, MTKViewDelegate {
             guard let drawable = view.currentDrawable else { return }
             guard let renderPassDescriptor = view.currentRenderPassDescriptor else { return }
             
+            renderPassDescriptor.depthAttachment.texture = view.depthStencilTexture
+            renderPassDescriptor.depthAttachment.loadAction = .clear
+            renderPassDescriptor.depthAttachment.storeAction = .store
+            renderPassDescriptor.depthAttachment.clearDepth = 1.0
+            
             let commandBuffer = commandQueue.makeCommandBuffer()!
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)!
+            
+            renderEncoder.setDepthStencilState(depthStencilState)
             
             // Matrix
             let size = parent.window.contentView!.frame
             let bufferPointer = terrainUniformBuffer.contents()
-            var mat = parent.game.world.matrix(width: Float(size.width), height: Float(size.height))
+            var mat = parent.game.world.primaryMatrix(width: Float(size.width), height: Float(size.height))
             memcpy(bufferPointer, &mat, MemoryLayout<Matrix<Float>>.size)
             
-            // Render 3D scene with the shared pipeline state
+            // Render terrain
             if terrainVertexCount > 0 {
-                renderEncoder.setRenderPipelineState(terrainPipelineState) // Use the common pipeline state
-                renderEncoder.setVertexBuffer(terrainVertexBuffer, offset: 0, index: 0) // Set 3D vertex buffer
-                renderEncoder.setFragmentTexture(terrainTexture, index: 0)         // Set 3D texture
+                renderEncoder.setRenderPipelineState(terrainPipelineState)
+                renderEncoder.setVertexBuffer(terrainVertexBuffer, offset: 0, index: 0)
+                renderEncoder.setFragmentTexture(terrainTexture, index: 0)
                 renderEncoder.setFragmentSamplerState(sampler, index: 0)
                 renderEncoder.setVertexBuffer(terrainUniformBuffer, offset: 0, index: 1)
-                renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: terrainVertexCount)  // Adjust vertexCount3D
+                renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: terrainVertexCount)
             }
             
-            // Render UI
+            // Render interface
             renderEncoder.setRenderPipelineState(interfacePipelineState)
             renderEncoder.setVertexBuffer(interfaceVertexBuffer, offset: 0, index: 0)
             renderEncoder.setFragmentTexture(interfaceTexture, index: 0)

@@ -9,13 +9,16 @@ public class Entity {
     }
     
     public func primaryUpdate(input: Input) {
-        
+        self.orientation.yaw += 0.1
     }
     
     public typealias Position = Vector3<Float>
     
+    /// A specialized vector of floats with wrapping behavior.
     public struct Orientation: Hashable {
         public var pitch, yaw, roll: Float
+        
+        public static var zero: Self { .init(pitch: 0, yaw: 0, roll: 0) }
         
         public init(pitch: Float = 0, yaw: Float = 0, roll: Float = 0) {
             self.pitch = pitch; self.yaw = yaw; self.roll = roll

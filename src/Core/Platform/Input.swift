@@ -4,9 +4,7 @@
 public struct Input: Sendable, BitwiseCopyable {
     public var mouse: Mouse
     
-    public init(mouse: Mouse) {
-        self.mouse = mouse
-    }
+    public init(mouse: Mouse) { self.mouse = mouse }
     
 //    private let keys: UnsafeBufferPointer<UInt8>
 //    

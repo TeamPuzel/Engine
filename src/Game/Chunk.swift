@@ -44,10 +44,19 @@ public final class Chunk {
         var buffer: [BlockVertex] = []
         buffer.reserveCapacity(Self.blocksPerChunk * 36 / 2)
         
+        let chunkOffsetX = Float(self.x * Self.side)
+        let chunkOffsetZ = Float(self.y * Self.side)
+        
         for x in 0..<Self.side {
             for z in 0..<Self.side {
                 for y in 0..<Self.height {
-                    self[x, y, z].mesh(faces: .all, x: Float(x), y: Float(y), z: Float(z), into: &buffer)
+                    self[x, y, z].mesh(
+                        faces: .all,
+                        x: Float(x) + chunkOffsetX,
+                        y: Float(y),
+                        z: Float(z) + chunkOffsetZ,
+                        into: &buffer
+                    )
                 }
             }
         }
@@ -59,14 +68,30 @@ public final class Chunk {
     ///
     /// It is intended to re-sort already mostly sorted vertices, must not take too long.
     public func resort() {
-//        sortTask = Task.detached {
-//            
-//        }
+        typealias TriVertex = (BlockVertex, BlockVertex, BlockVertex)
+//        guard blocks.count.isMultiple(of: 3) else { return }
+        var buffer = mesh
+        
+        precondition(buffer.count.isMultiple(of: 3))
+        buffer.withUnsafeMutableBufferPointer { buf in
+            buf.baseAddress!.withMemoryRebound(to: TriVertex.self, capacity: buf.count / 3) { ptr in
+                var triView = UnsafeMutableBufferPointer(start: ptr, count: buf.count / 3)
+                triView.sort { lhs, rhs in
+                    triCompare(
+                        (lhs.0.position, lhs.1.position, lhs.2.position),
+                        (rhs.0.position, rhs.1.position, rhs.2.position),
+                        to: world.primaryPosition
+                    )
+                }
+            }
+        }
+        
+        mesh = buffer
     }
     
     public subscript(x: Int, y: Int, z: Int) -> Block {
-        get { blocks[(x * Self.side * Self.side) + (z * Self.side) + y] }
-        set { blocks[(x * Self.side * Self.side) + (z * Self.side) + y] = newValue }
+        get { blocks[(x * Self.side * Self.height) + (y * Self.side) + z] }
+        set { blocks[(x * Self.side * Self.height) + (y * Self.side) + z] = newValue }
     }
     
     @_disfavoredOverload

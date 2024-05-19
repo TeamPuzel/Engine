@@ -27,23 +27,28 @@ public final class World {
         
         for (_, chunk) in chunks { chunk.generate() }
         
-        let player = Entity.Human(x: 0, y: -1, z: 0)
+        let player = Entity.Human(x: 0, y: 130, z: 0)
         entities.insert(player)
         primaryEntity = player
+        
+        for (_, chunk) in chunks { chunk.remesh(); chunk.resort() }
     }
     
     public func frame(input: Input, renderer: inout Image) {
-        
+        primaryEntity!.primaryUpdate(input: input)
     }
+    
+    public var primaryPosition: Entity.Position { primaryEntity?.position ?? .zero }
+    public var primaryOrientation: Entity.Orientation { primaryEntity?.orientation ?? .zero }
     
     public var unifiedMesh: [BlockVertex] {
         chunks.reduce(into: []) { acc, el in acc.append(contentsOf: el.value.mesh)  }
     }
     
-    public func matrix(width: Float, height: Float) -> Matrix<Float> {
-        .translation(x: -primaryEntity.position.x, y: -primaryEntity.position.y, z: -primaryEntity.position.z) *
-        .rotation(axis: .yaw, angle: primaryEntity.orientation.yaw) *
-        .rotation(axis: .pitch, angle: primaryEntity.orientation.pitch) *
-        .projection(width: width, height: height, fov: 80, near: 0.1, far: 1000)
+    public func primaryMatrix(width: Float, height: Float) -> Matrix<Float> {
+        .translation(x: -primaryEntity.position.x, y: -primaryEntity.position.y, z: -primaryEntity.position.z)
+            .rotated(axis: .yaw, angle: primaryEntity.orientation.yaw)
+            .rotated(axis: .pitch, angle: primaryEntity.orientation.pitch)
+            .projected(width: width, height: height, fov: 80, near: 0.1, far: 1000)
     }
 }

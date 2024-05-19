@@ -91,6 +91,18 @@ public struct Matrix<T: FloatingPointMath> {
             (0, 0, -near * q, 0)
         ))
     }
+    
+    public func translated(x: T, y: T, z: T) -> Self { self * .translation(x: x, y: y, z: z) }
+    
+    public func scaled(x: T, y: T, z: T) -> Self { self * .scaling(x: x, y: y, z: z) }
+    
+    public func rotated(axis: MatrixRotationAxis, angle: T) -> Self {
+        self * .rotation(axis: axis, angle: angle)
+    }
+    
+    public func projected(width: T, height: T, fov: T, near: T, far: T) -> Self {
+        self * .projection(width: width, height: height, fov: fov, near: near, far: far)
+    }
 }
 
 public enum MatrixRotationAxis { case pitch, yaw, roll }
@@ -112,10 +124,11 @@ extension Matrix: Equatable {
 
 public func degreesToRadians<T: FloatingPoint>(_ value: T) -> T { value * T.pi / 180 }
 
-public protocol FloatingPointMath: FloatingPoint {
+public protocol FloatingPointMath: FloatingPoint, Fractional, ExpressibleByFloatLiteral {
     var sin: Self { get }
     var cos: Self { get }
     var tan: Self { get }
+    var sqrt: Self { get }
 }
 
 extension Float32: FloatingPointMath {
@@ -123,6 +136,8 @@ extension Float32: FloatingPointMath {
     public var sin: Self { Self(Builtin.int_sin_FPIEEE32(self._value)) }
     @_transparent
     public var cos: Self { Self(Builtin.int_cos_FPIEEE32(self._value)) }
+    @_transparent
+    public var sqrt: Self { Self(Builtin.int_sqrt_FPIEEE32(self._value)) }
     
     #if arch(x86_64)
     @_transparent
@@ -138,6 +153,9 @@ extension Float64: FloatingPointMath {
     public var sin: Self { Self(Builtin.int_sin_FPIEEE64(self._value)) }
     @_transparent
     public var cos: Self { Self(Builtin.int_cos_FPIEEE64(self._value)) }
+    @_transparent
+    public var sqrt: Self { Self(Builtin.int_sqrt_FPIEEE64(self._value)) }
+    
     #if arch(x86_64)
     @_transparent
     public var tan: Self { Self(Builtin.int_tan_FPIEEE64(self._value)) }
