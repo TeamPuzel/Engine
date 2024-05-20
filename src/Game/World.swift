@@ -42,7 +42,7 @@ public final class World {
     public var primaryOrientation: Entity.Orientation { primaryEntity?.orientation ?? .zero }
     
     public var unifiedMesh: [BlockVertex] {
-        chunks.reduce(into: []) { acc, el in acc.append(contentsOf: el.value.mesh)  }
+        chunks.values.reduce(into: []) { acc, el in acc.append(contentsOf: el.mesh)  }
     }
     
     public func primaryMatrix(width: Float, height: Float) -> Matrix<Float> {

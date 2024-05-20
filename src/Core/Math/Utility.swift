@@ -1,13 +1,13 @@
 
 public extension BinaryInteger {
     func normalized(from: ClosedRange<Self>, to: ClosedRange<Self>) -> Self {
-        (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound) * (self - from.lowerBound) + to.upperBound
+        (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound) * (self - from.upperBound) + to.upperBound
     }
 }
 
 public extension FloatingPoint {
     func normalized(from: ClosedRange<Self>, to: ClosedRange<Self>) -> Self {
-        (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound) * (self - from.lowerBound) + to.upperBound
+        (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound) * (self - from.upperBound) + to.upperBound
     }
 }
 
@@ -28,3 +28,22 @@ extension UInt8: Fractional {}
 extension UInt16: Fractional {}
 extension UInt32: Fractional {}
 extension UInt64: Fractional {}
+
+public extension Sequence where Element: FloatingPointMath {
+    /// Returns the average of all the numbers in the sequence.
+    func average() -> Element {
+        var count = 0
+        let sum = self.reduce(into: Element.zero) { acc, el in acc += el; count += 1 }
+        return sum / Element(count)
+    }
+}
+
+public extension Sequence where Element: AdditiveArithmetic {
+    /// Returns the sum of elements in the sequence.
+    func sum() -> Element { self.reduce(into: Element.zero) { acc, el in acc += el } }
+}
+
+public extension Collection where Element: FloatingPointMath {
+    /// Returns the average of all the numbers in the collection.
+    func average() -> Element { self.sum() / Element(self.count) }
+}

@@ -131,6 +131,11 @@ public protocol FloatingPointMath: FloatingPoint, Fractional, ExpressibleByFloat
     var sqrt: Self { get }
 }
 
+public extension FloatingPointMath {
+    func clamped(to range: ClosedRange<Self>) -> Self { max(range.lowerBound, min(self, range.upperBound)) }
+    mutating func clamp(to range: ClosedRange<Self>) { self = self.clamped(to: range) }
+}
+
 extension Float32: FloatingPointMath {
     @_transparent
     public var sin: Self { Self(Builtin.int_sin_FPIEEE32(self._value)) }

@@ -1,5 +1,8 @@
 
 /// The most basic `Drawable`, supports mutability and can be rendered into.
+///
+/// An image is backed by an allocation of `[Color]` which can be read (but not written to) directly.
+/// This is primarily intended for FFI, allowing an image to be rendered by a graphics API.
 public struct Image: MutableDrawable, Sendable {
     public private(set) var data: [Color]
     public let width, height: Int
@@ -10,6 +13,7 @@ public struct Image: MutableDrawable, Sendable {
         self.data = .init(repeating: color, count: width * height)
     }
     
+    // TODO(!): Initialization can safely be skipped here.
     public init(_ drawable: some Drawable) {
         self.width = drawable.width
         self.height = drawable.height
@@ -22,8 +26,11 @@ public struct Image: MutableDrawable, Sendable {
         }
     }
     
-    @discardableResult
-    mutating func resize(width: Int, height: Int) -> Bool {
+    /// Resizes the image and copies over old color data into the new allocation at `x: 0. y: 0`.
+    /// - Returns: `true` if the image was resized, `false` if provided dimensions were identical.
+    ///
+    /// When the image size is unchanged no reallocation is performed.
+    @discardableResult public mutating func resize(width: Int, height: Int) -> Bool {
         guard width != self.width || height != self.height else { return false }
         var new = Image(width: width, height: height)
         new.draw(self, x: 0, y: 0)

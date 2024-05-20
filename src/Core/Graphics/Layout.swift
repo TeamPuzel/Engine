@@ -348,7 +348,7 @@ public struct Padding<Inner: Drawable>: Drawable {
 
 extension Padding: Sendable where Inner: Sendable {}
 
-public struct Edges: OptionSet, Sendable {
+public struct Edges: OptionSet, Sendable, BitwiseCopyable {
     public let rawValue: UInt8
     
     public init(rawValue: UInt8) { self.rawValue = rawValue }
@@ -425,13 +425,8 @@ public struct ClickProcessing<Inner: Drawable>: ProcessingDrawable {
     public subscript(x: Int, y: Int) -> Color { inner[x, y] }
     
     public func process(input: Input, x: Int, y: Int) {
-        if
-            input.mouse.x >= x &&
-            input.mouse.x < x + width &&
-            input.mouse.y >= y &&
-            input.mouse.y < y + height &&
-            input.mouse.left
-        {
+        guard let mouse = input.mouse else { return }
+        if mouse.x >= x && mouse.x < x + width && mouse.y >= y && mouse.y < y + height && mouse.left {
             click()
         }
     }
@@ -456,14 +451,8 @@ public struct HoverProcessing<Inner: Drawable>: ProcessingDrawable {
     public subscript(x: Int, y: Int) -> Color { inner[x, y] }
     
     public func process(input: Input, x: Int, y: Int) {
-        if
-            input.mouse.x >= x &&
-            input.mouse.x < x + width &&
-            input.mouse.y >= y &&
-            input.mouse.y < y + height
-        {
-            hover()
-        }
+        guard let mouse = input.mouse else { return }
+        if mouse.x >= x && mouse.x < x + width && mouse.y >= y && mouse.y < y + height { hover() }
     }
 }
 

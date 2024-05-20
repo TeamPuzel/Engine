@@ -1,62 +1,95 @@
 
 /// A work in progress representation of input.
 // TODO(!): This needs to be properly abstract to work across platforms.
-public struct Input: Sendable, BitwiseCopyable {
-    public var mouse: Mouse
+public struct Input: Sendable {
+    public var mouse: Mouse? = nil
+    public var keys: Set<Key> = []
+    public var modifiers: Set<Modifier> = []
     
-    public init(mouse: Mouse) { self.mouse = mouse }
-    
-//    private let keys: UnsafeBufferPointer<UInt8>
-//    
-//    public var tab: Bool { keys[Int(SDL_SCANCODE_TAB.rawValue)] == 1 }
-//    public var enter: Bool { keys[Int(SDL_SCANCODE_RETURN.rawValue)] == 1 }
-//    
-//    public var leftShift: Bool { keys[Int(SDL_SCANCODE_LSHIFT.rawValue)] == 1 }
-//    public var rightShift: Bool { keys[Int(SDL_SCANCODE_RSHIFT.rawValue)] == 1 }
-//    public var leftAlt: Bool { keys[Int(SDL_SCANCODE_LALT.rawValue)] == 1 }
-//    public var rightAlt: Bool { keys[Int(SDL_SCANCODE_RALT.rawValue)] == 1 }
-//    public var leftControl: Bool { keys[Int(SDL_SCANCODE_LCTRL.rawValue)] == 1 }
-//    public var rightControl: Bool { keys[Int(SDL_SCANCODE_RALT.rawValue)] == 1 }
-//    
-//    public var arrowUp: Bool { keys[Int(SDL_SCANCODE_UP.rawValue)] == 1 }
-//    public var arrowDown: Bool { keys[Int(SDL_SCANCODE_DOWN.rawValue)] == 1 }
-//    public var arrowLeft: Bool { keys[Int(SDL_SCANCODE_LEFT.rawValue)] == 1 }
-//    public var arrorRight: Bool { keys[Int(SDL_SCANCODE_RIGHT.rawValue)] == 1 }
-//    
-//    public subscript(for name: String) -> Bool {
-//        keys[Int(SDL_GetScancodeFromName(name).rawValue)] == 1
-//    }
-//    
-//    fileprivate init(window: OpaquePointer) {
-//        var (wx, wy): (Int32, Int32) = (0, 0)
-//        SDL_GetWindowPosition(window, &wx, &wy)
-//        
-//        var (x, y): (Int32, Int32) = (0, 0)
-//        let buttons = SDL_GetMouseState(&x, &y)
-//        SDL_GetGlobalMouseState(&x, &y)
-//        
-//        x -= wx; y -= wy
-//        x /= Int32(pixelScale); y /= Int32(pixelScale)
-//        
-//        let left = buttons & 1 == 1
-//        let right = buttons & 3 == 3
-//        
-//        self.mouse = .init(x: Int(x), y: Int(y), left: left, right: right)
-//        
-//        var count: Int32 = 0
-//        let rawKeys = SDL_GetKeyboardState(&count)!
-//        self.keys = UnsafeBufferPointer(start: rawKeys, count: Int(count))
-//    }
+    public init() {}
     
     public struct Mouse: Sendable, BitwiseCopyable {
         public var x, y: Int
         public var left, right: Bool
+        
+        public init() {
+            self.x = 0
+            self.y = 0
+            self.left = false
+            self.right = false
+        }
         
         public init(x: Int, y: Int, left: Bool, right: Bool) {
             self.x = x
             self.y = y
             self.left = left
             self.right = right
+        }
+    }
+    
+    public struct Key: Hashable, Sendable, BitwiseCopyable {
+        public var tag: Tag
+        public var isRepeated: Bool
+        
+        public func hash(into hasher: inout Hasher) { tag.hash(into: &hasher) }
+        
+        public init(tag: Tag, isRepeated: Bool) {
+            self.tag = tag
+            self.isRepeated = isRepeated
+        }
+        
+        public enum Tag: Hashable, Sendable, BitwiseCopyable {
+            case a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+            case function(UInt8), modifier
+            
+            public init?(_ character: Character) {
+                switch character {
+                    case "a": self = .a
+                    case "b": self = .b
+                    case "c": self = .c
+                    case "d": self = .d
+                    case "e": self = .e
+                    case "f": self = .f
+                    case "g": self = .g
+                    case "h": self = .h
+                    case "i": self = .i
+                    case "j": self = .j
+                    case "k": self = .k
+                    case "l": self = .l
+                    case "m": self = .m
+                    case "n": self = .n
+                    case "o": self = .o
+                    case "p": self = .p
+                    case "q": self = .q
+                    case "r": self = .r
+                    case "s": self = .s
+                    case "t": self = .t
+                    case "u": self = .u
+                    case "v": self = .v
+                    case "w": self = .w
+                    case "x": self = .x
+                    case "y": self = .y
+                    case "z": self = .z
+                    case _: return nil
+                }
+            }
+        }
+    }
+    
+    public struct Modifier: Hashable, Sendable, BitwiseCopyable {
+        public var tag: Tag
+        public var isRepeated: Bool
+        
+        public func hash(into hasher: inout Hasher) { tag.hash(into: &hasher) }
+        
+        public init(tag: Tag, isRepeated: Bool) {
+            self.tag = tag
+            self.isRepeated = isRepeated
+        }
+        
+        public enum Tag: Hashable, Sendable, BitwiseCopyable {
+            case a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
+            case A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
         }
     }
 }

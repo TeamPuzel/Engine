@@ -181,6 +181,26 @@ public struct ColorBlend<Foreground: Drawable, Background: Drawable>: Drawable {
 
 extension ColorBlend: Sendable where Foreground: Sendable, Background: Sendable {}
 
+// MARK: - Iteration
+
+extension Drawable {
+    public func enumerated() -> DrawableIterator<Self> { .init(self) }
+}
+
+public struct DrawableIterator<Inner: Drawable>: IteratorProtocol {
+    public typealias Element = ((x: Int, y: Int), value: Color)
+    
+    private var inner: Inner
+    
+    public init(_ drawable: Inner) { self.inner = drawable }
+    
+    public mutating func next() -> Element? {
+        fatalError() // TODO(!)
+    }
+}
+
+extension DrawableIterator: Sendable where Inner: Sendable {}
+
 // MARK: - Transformation
 
 public extension Drawable {
