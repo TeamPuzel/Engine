@@ -2,22 +2,17 @@
 
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableExperimentalFeature("StrictConcurrency"),
+    .enableExperimentalFeature("BuiltinModule")
+]
+
 let package = Package(
     name: "Minecraft",
     platforms: [.macOS(.v14)],
     targets: [
-//        .systemLibrary(name: "SDL", path: "sys", pkgConfig: "sdl2"),
-//        .target(name: "GLAD", path: "lib/glad"),
         .target(name: "Assets", path: "assets/module"),
-        .executableTarget(
-            name: "Minecraft",
-            dependencies: ["Assets"],
-            path: "src",
-            swiftSettings: [
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("BuiltinModule")
-            ]
-        )
+        .executableTarget(name: "Minecraft", dependencies: ["Assets"], path: "src", swiftSettings: swiftSettings)
     ]
 )

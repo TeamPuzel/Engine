@@ -1,7 +1,7 @@
 
-import Assets
-
 // MARK: - Assets
+
+import Assets
 
 fileprivate let interface = UnsafeTGAPointer(UI_TGA).grid(itemSide: 16)
 fileprivate let cursor = interface[0, 0]
