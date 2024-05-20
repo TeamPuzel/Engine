@@ -1,4 +1,6 @@
 
+// MARK: - Input
+
 /// A work in progress representation of input.
 // TODO(!): This needs to be properly abstract to work across platforms.
 public struct Input: Sendable {
@@ -91,5 +93,58 @@ public struct Input: Sendable {
             case a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z
             case A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
         }
+    }
+}
+
+// MARK: - Time
+
+#if canImport(Darwin)
+import Darwin
+
+fileprivate func getTime() -> Double {
+    var timespec = timespec()
+    clock_gettime(CLOCK_UPTIME_RAW, &timespec)
+    return Double(timespec.tv_sec) * 1_000_000_000 + Double(timespec.tv_nsec)
+}
+
+#elseif canImport(Glibc)
+import Glibc
+
+fileprivate func getTime() -> Double {
+    var timespec = timespec()
+    clock_gettime(CLOCK_BOOTTIME, &timespec)
+    return timespec.tv_nsec
+}
+
+#endif
+
+public struct Timer: ~Copyable {
+    private var prevTime: Double = getTime()
+    public init() {}
+    
+    public var elapsed: Double {
+        (getTime() - prevTime) / 1000000 // Converting nano to milliseconds
+    }
+    
+    @discardableResult
+    public mutating func lap() -> Double {
+        let elapsed = elapsed
+        prevTime = getTime()
+        return elapsed
+    }
+}
+
+public struct BufferedTimer: ~Copyable {
+    public private(set) var inner: Timer = .init()
+    private var buffer: [Double] = .init(repeating: 0, count: 360)
+    public init() {}
+    
+    public var elapsed: Double { buffer.average() }
+    
+    @discardableResult
+    public mutating func lap() -> Double {
+        buffer.removeFirst()
+        buffer.append(inner.lap())
+        return elapsed
     }
 }

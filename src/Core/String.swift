@@ -11,5 +11,5 @@
 //}
 //
 //public protocol Formattable {
-//    
+//
 //}

@@ -1,47 +1,9 @@
 
 import Assets
+import Cocoa
+import MetalKit
 
-fileprivate let interface = UnsafeTGAPointer(UI_TGA).grid(itemSide: 16)
-fileprivate let cursor = interface[0, 0]
-fileprivate let cursorPressed = interface[1, 0]
 fileprivate let terrain = UnsafeTGAPointer(TERRAIN_TGA)
-
-/// A platform independent game implementation, manages game state based on abstract input
-/// and provides ways to query its encapsulated state, such as abstract mesh data.
-///
-/// # Platform abstraction
-/// Rather than implementing an abstract platform interface that an arbitrary game can use,
-/// the game itself is abstract allowing platform specific code to remain custom and highly optimized.
-@main
-public final class Game {
-    public var input: Input = .init()
-    public var interface: Image = .init(width: 400, height: 300)
-    public var world: World
-    
-    private var timer = BufferedTimer()
-    private var debug = true
-    
-    public init() {
-        self.world = World(name: "Test")
-    }
-    
-    public func frame() {
-        let elapsed = timer.lap()
-        interface.clear()
-        
-        world.frame(input: input, renderer: &interface)
-        
-        if debug {
-            interface.text("Frame: \(String(format: "%.5f", elapsed))", x: 2, y: 2)
-            interface.text("Position: \(world.primaryPosition)", x: 2, y: 2 + 6)
-            interface.text("Rotation: \(world.primaryOrientation)", x: 2, y: 2 + 6 * 2)
-        }
-        
-        if let mouse = input.mouse {
-            interface.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
-        }
-    }
-}
 
 // MARK: - Vertices
 
@@ -55,12 +17,9 @@ public struct BlockVertex: Hashable, Sendable, BitwiseCopyable {
     @_transparent public var position: Vector3<Float> { .init(x: x, y: y, z: z) }
 }
 
-// MARK: - Application
+// MARK: - Entry point
 
-import Cocoa
-import MetalKit
-
-public extension Game {
+public extension Minecraft {
     static func main() {
         let instance = Self()
         let delegate = AppDelegate(game: instance)
@@ -71,14 +30,16 @@ public extension Game {
     }
 }
 
+// MARK: - Application
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let game: Game
+    private let game: Minecraft
     
     private var window: NSWindow!
     private var renderer: Renderer!
     
-    public init(game: Game) { self.game = game }
+    public init(game: Minecraft) { self.game = game }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         self.window = .init(
@@ -162,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     internal func metalViewDelegateRequiresMeshToDraw() -> [BlockVertex] { game.world.unifiedMesh }
     
-    internal func metalViewDelegateRequiresMatrixToDraw() -> Matrix<Float> {
+    internal func metalViewDelegateRequiresMatrixToDraw() -> Matrix4x4<Float> {
         game.world.primaryMatrix(width: Float(window.frame.width), height: Float(window.frame.height))
     }
 }
@@ -213,7 +174,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         createSamplerState(device: device)
         
         self.terrainUniformBuffer = device.makeBuffer(
-            length: MemoryLayout<Matrix<Float>>.stride,
+            length: MemoryLayout<Matrix4x4<Float>>.stride,
             options: []
         )
     }
@@ -420,7 +381,7 @@ final class Renderer: NSObject, MTKViewDelegate {
             
             let matrix = parent.metalViewDelegateRequiresMatrixToDraw()
             withUnsafePointer(to: matrix) { ptr in
-                _ = memcpy(bufferPointer, ptr, MemoryLayout<Matrix<Float>>.size) // BAD API: MEMCPY
+                _ = memcpy(bufferPointer, ptr, MemoryLayout<Matrix4x4<Float>>.size) // BAD API: MEMCPY
             }
             
             // Render terrain

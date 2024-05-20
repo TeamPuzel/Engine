@@ -3,7 +3,7 @@ import Assets
 
 /// A namespace for built in images.
 public enum Images {
-    public enum UI {
+    public enum Interface {
         public static let cursor: Image = [
             [.clear, .black, .clear, .clear, .clear, .clear],
             [.black, .white, .black, .clear, .clear, .clear],
