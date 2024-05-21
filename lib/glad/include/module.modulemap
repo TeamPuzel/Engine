@@ -1,4 +1,0 @@
-
-module GLAD {
-    header "glad/glad.h"
-}

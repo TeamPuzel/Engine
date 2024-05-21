@@ -1,4 +1,5 @@
 
+#if os(macOS)
 import Assets
 import Cocoa
 import MetalKit
@@ -88,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     
     // MARK: - Responding to the Renderer
-    // TODO(!!!): OVERREACH (SECTION)
+    // TODO(!!!): Stop reaching into classes this much.
     
     private var isMouseHidden = false
     
@@ -112,6 +113,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 //        let btn = NSEvent.pressedMouseButtons
 //        let left = btn & 1 << 0 == 1 << 0
 //        let right = btn & 1 << 1 == 1 << 1
+        
+        // HACK TO GET MOUSE (until I figure out cocoa events)
+        let upsideMouse = window.mouseLocationOutsideOfEventStream
+        if window.contentView!.frame.contains(upsideMouse) {
+            if !isMouseHidden { NSCursor.hide() }
+            isMouseHidden = true
+        } else {
+            if isMouseHidden { NSCursor.unhide() }
+            isMouseHidden = false
+        }
+        
+        let mouse = NSPoint(x: upsideMouse.x, y: window.contentView!.frame.height - upsideMouse.y)
+        let btn = NSEvent.pressedMouseButtons
+        let left = btn & 1 << 0 == 1 << 0
+        let right = btn & 1 << 1 == 1 << 1
+        game.input.mouse = .init(x: Int(mouse.x / 2), y: Int(mouse.y / 2), left: left, right: right)
+        // ENDHACK
         game.frame()
     }
     
@@ -408,3 +426,5 @@ final class Renderer: NSObject, MTKViewDelegate {
         }
     }
 }
+
+#endif

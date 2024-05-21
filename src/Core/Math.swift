@@ -62,7 +62,9 @@ public extension BinaryInteger {
 
 public extension FloatingPoint {
     func normalized(from: ClosedRange<Self>, to: ClosedRange<Self>) -> Self {
-        (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound) * (self - from.upperBound) + to.upperBound
+        let step1 = (to.upperBound - to.lowerBound) / (from.upperBound - from.lowerBound)
+        let step2 = step1 * (self - from.upperBound)
+        return step2 + to.upperBound
     }
 }
 

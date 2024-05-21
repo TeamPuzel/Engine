@@ -11,11 +11,7 @@ fileprivate let terrain = UnsafeTGAPointer(TERRAIN_TGA)
 // MARK: - Minecraft
 
 /// A platform independent game implementation, manages game state based on abstract input
-/// and provides ways to query its encapsulated state, such as abstract mesh data.
-///
-/// # Platform abstraction
-/// Rather than implementing an abstract platform interface that an arbitrary game can use,
-/// the game itself is abstract allowing platform specific code to remain custom and highly optimized.
+/// and provides ways to query its encapsulated state, such as abstract mesh data. *It must not access platform state*.
 ///
 /// # Entry point
 /// The entry point is declared to be here but it is for platform code to implement it in an extension.
@@ -39,6 +35,7 @@ public final class Minecraft {
         world.frame(input: input, renderer: &interface)
         
         if debug {
+            // PLATFORM(!), TODO(!): Why is formatting depending on Foundation...
             interface.text("Frame: \(String(format: "%.5f", elapsed))", x: 2, y: 2)
             interface.text("Position: \(world.primaryPosition)", x: 2, y: 2 + 6)
             interface.text("Rotation: \(world.primaryOrientation)", x: 2, y: 2 + 6 * 2)
@@ -55,7 +52,7 @@ public final class Minecraft {
 /// Represents the entire world.
 ///
 /// # Distributed
-/// This actor will potentially be distributed one day to support multiplayer. Plan accordingly,
+/// This actor will potentially (probably not) be distributed one day to support multiplayer. Plan accordingly,
 /// as all messages will have to implement `Codable` or some other custom serialization system.
 public final class World {
     public let name: String
@@ -408,4 +405,3 @@ extension Entity: Hashable {
     public static func == (lhs: Entity, rhs: Entity) -> Bool { lhs === rhs }
     public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
 }
-
