@@ -4,7 +4,16 @@
 /// A work in progress representation of input.
 // TODO(!): This needs to be properly abstract to work across platforms.
 public struct Input: Sendable {
-    public var mouse: Mouse? = nil
+    public var mouse: Mouse? = nil { willSet { previousMouse = mouse } }
+    private var previousMouse: Mouse? = nil
+    public var relativeMouse: Mouse {
+        return if case let (.some(mouse), .some(previousMouse)) = (mouse, previousMouse) {
+            .init(x: mouse.x - previousMouse.x, y: mouse.y - previousMouse.y, left: mouse.left, right: mouse.right)
+        } else {
+            mouse ?? .init()
+        }
+    }
+    
     public var keys: Set<Key> = []
     public var modifiers: Set<Modifier> = []
     

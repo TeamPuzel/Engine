@@ -57,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenuItem()
         main.submenu = NSMenu()
         main.submenu!.items = [
+            NSMenuItem(title: "Quit Minecraft", action: #selector(window.toggleFullScreen(_:)), keyEquivalent: "f"), // TODO(!): Wrong shortcut
             NSMenuItem(title: "Quit Minecraft", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         ]
         menu.addItem(main)
@@ -68,16 +69,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         metalView.depthStencilPixelFormat = .depth32Float
         window.contentView = metalView
         
-//        NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp, .mouseMoved, .mouseEntered, .mouseExited]) { event in
-//            if event.associatedEventsMask.contains(.keyDown) {
-//                event.characters?.forEach { char in
-//                    print(char); #warning("Unfinished input event code")
-//                }
-//            } else if event.associatedEventsMask.contains(.keyUp) {
-//                
-//            }
-//            return nil
-//        }
+        NSEvent.addLocalMonitorForEvents(
+            matching: [
+                .keyDown, .keyUp, .mouseMoved, .mouseEntered, .mouseExited, .leftMouseUp, .leftMouseDown,
+                .rightMouseUp, .rightMouseDown, .leftMouseDragged, .rightMouseDragged
+            ]
+        ) { event in
+            self.handleInputEvent(event); return event
+        }
         
         self.renderer = Renderer(self, device: metalView.device!)
         metalView.delegate = renderer
@@ -88,49 +87,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     
+    // MARK: - Input events
+    
+    private func handleInputEvent(_ event: NSEvent) {
+        switch event.type {
+            case .keyDown:
+                guard let char = event.characters?.first else { break }
+                guard let key = Input.Key.Tag(char) else { break }
+                game.input.keys.update(with: Input.Key(tag: key, isRepeated: event.isARepeat))
+            case .keyUp:
+                guard let char = event.characters?.first else { break }
+                guard let key = Input.Key.Tag(char) else { break }
+                game.input.keys.remove(Input.Key(tag: key, isRepeated: event.isARepeat))
+                
+            case .mouseMoved, .leftMouseDragged, .rightMouseDragged: updateMousePosition(event)
+            case .mouseEntered: mouseEntered(event)
+            case .mouseExited: mouseExited(event)
+                
+            case .leftMouseDown: game.input.mouse?.left = true
+            case .leftMouseUp: game.input.mouse?.left = false
+            case .rightMouseDown: game.input.mouse?.right = true
+            case .rightMouseUp: game.input.mouse?.right = false
+            case _: break
+        }
+    }
+    
+    private func mouseEntered(_ event: NSEvent) { NSCursor.hide() }
+    
+    private func mouseExited(_ event: NSEvent) { NSCursor.unhide() }
+
+    private func updateMousePosition(_ event: NSEvent) {
+        guard event.window != nil else { game.input.mouse = nil; return }
+        guard window.contentView!.frame.contains(event.locationInWindow) else { game.input.mouse = nil; return }
+        
+        let point = event.locationInWindow
+        let (x, y) = (Int(point.x), Int(window.contentView!.frame.height - point.y))
+        game.input.mouse = .init(x: x / 2, y: y / 2, left: game.input.mouse?.left ?? false, right: game.input.mouse?.right ?? false)
+    }
+    
+    private func processCursorLock() {
+        if game.isCursorLocked {
+            let frame = window.contentView!.frame
+            let point = NSPoint(x: frame.origin.x + frame.width / 2, y: frame.origin.y + frame.height / 2)
+            
+            // Why is the origin all over the place on this OS, what is even going on here
+            var screenPosition = window.frame.origin
+            screenPosition.y = window.screen!.frame.height - screenPosition.y
+            screenPosition.x += frame.width / 2
+            screenPosition.y -= frame.height / 2
+            
+            CGWarpMouseCursorPosition(screenPosition)
+            CGAssociateMouseAndMouseCursorPosition(1)
+            
+            let btn = NSEvent.pressedMouseButtons
+            let left = btn & 1 << 0 == 1 << 0
+            let right = btn & 1 << 1 == 1 << 1
+            game.input.mouse = .init(x: Int(point.x / 2), y: Int(point.y / 2), left: left, right: right)
+        }
+    }
+    
     // MARK: - Responding to the Renderer
     // TODO(!!!): Stop reaching into classes this much.
     
-    private var isMouseHidden = false
-    
     internal func metalViewDelegateDrawableSizeWillChange(_ size: CGSize) {
         let scale = window.backingScaleFactor
-        // OVERREACH
         game.interface.resize(width: Int(size.width / 2 / scale), height: Int(size.height / 2 / scale))
     }
     
     internal func metalViewDelegateWillDrawFrame() {
-//        let upsideMouse = parent.window.mouseLocationOutsideOfEventStream
-//        if parent.window.contentView!.frame.contains(upsideMouse) {
-//            if !isMouseHidden { NSCursor.hide() }
-//            isMouseHidden = true
-//        } else {
-//            if isMouseHidden { NSCursor.unhide() }
-//            isMouseHidden = false
-//        }
-//        
-//        let mouse = NSPoint(x: upsideMouse.x, y: parent.window.contentView!.frame.height - upsideMouse.y)
-//        let btn = NSEvent.pressedMouseButtons
-//        let left = btn & 1 << 0 == 1 << 0
-//        let right = btn & 1 << 1 == 1 << 1
-        
-        // HACK TO GET MOUSE (until I figure out cocoa events)
-        let upsideMouse = window.mouseLocationOutsideOfEventStream
-        if window.contentView!.frame.contains(upsideMouse) {
-            if !isMouseHidden { NSCursor.hide() }
-            isMouseHidden = true
-        } else {
-            if isMouseHidden { NSCursor.unhide() }
-            isMouseHidden = false
-        }
-        
-        let mouse = NSPoint(x: upsideMouse.x, y: window.contentView!.frame.height - upsideMouse.y)
-        let btn = NSEvent.pressedMouseButtons
-        let left = btn & 1 << 0 == 1 << 0
-        let right = btn & 1 << 1 == 1 << 1
-        game.input.mouse = .init(x: Int(mouse.x / 2), y: Int(mouse.y / 2), left: left, right: right)
-        // ENDHACK
         game.frame()
+        processCursorLock()
     }
     
     internal func metalViewDelegateRequiresInterfaceToDraw() -> Image { game.interface }

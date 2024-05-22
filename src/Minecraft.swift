@@ -23,6 +23,7 @@ public final class Minecraft {
     
     private var timer = BufferedTimer()
     private var debug = true
+    public var isCursorLocked = true
     
     public init() {
         self.world = World(name: "Test")
@@ -41,7 +42,7 @@ public final class Minecraft {
             interface.text("Rotation: \(world.primaryOrientation)", x: 2, y: 2 + 6 * 2)
         }
         
-        if let mouse = input.mouse {
+        if let mouse = input.mouse, !isCursorLocked {
             interface.draw(mouse.left ? cursorPressed : cursor, x: mouse.x - 1, y: mouse.y - 1)
         }
     }
@@ -423,7 +424,10 @@ public class Entity {
     }
     
     public func primaryUpdate(input: Input) {
-        self.orientation.yaw += 0.1
+        orientation.yaw += Float(input.relativeMouse.x) / 10
+        orientation.pitch += (Float(input.relativeMouse.y) / 10)
+        orientation.pitch.clamp(to: -90...90)
+        
         self.position.x += 0.01
     }
     

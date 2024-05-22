@@ -23,14 +23,8 @@ extension Float32: FloatingPointMath {
     public var cos: Self { Self(Builtin.int_cos_FPIEEE32(self._value)) }
     @_transparent
     public var sqrt: Self { Self(Builtin.int_sqrt_FPIEEE32(self._value)) }
-    
-    #if arch(x86_64)
-    @_transparent
-    public var tan: Self { Self(Builtin.int_tan_FPIEEE32(self._value)) }
-    #else
     @_transparent
     public var tan: Self { self.sin / self.cos }
-    #endif
     @_transparent
     public func pow(_ n: Self) -> Self { Self(Builtin.int_pow_FPIEEE32(self._value, n._value)) }
 }
@@ -42,25 +36,10 @@ extension Float64: FloatingPointMath {
     public var cos: Self { Self(Builtin.int_cos_FPIEEE64(self._value)) }
     @_transparent
     public var sqrt: Self { Self(Builtin.int_sqrt_FPIEEE64(self._value)) }
-    
-    #if arch(x86_64)
-    @_transparent
-    public var tan: Self { Self(Builtin.int_tan_FPIEEE64(self._value)) }
-    #else
     @_transparent
     public var tan: Self { self.sin / self.cos }
-    #endif
-    
     @_transparent
     public func pow(_ n: Self) -> Self { Self(Builtin.int_pow_FPIEEE64(self._value, n._value)) }
-}
-
-public extension Float32 {
-    
-}
-
-public extension Float64 {
-    
 }
 
 // MARK: - Normalization
