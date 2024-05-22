@@ -32,7 +32,7 @@ public final class Minecraft {
         let elapsed = timer.lap()
         interface.clear()
         
-        world.frame(input: input, renderer: &interface)
+        world.frame(input: input)
         
         if debug {
             // PLATFORM(!), TODO(!): Why is formatting depending on Foundation...
@@ -75,24 +75,35 @@ public final class World {
             }
         }
         
-        for (_, chunk) in chunks { chunk.generate() }
+        chunks.values.forEach { $0.generate() }
         
         let player = Entity.Human(x: 0, y: 130, z: 0)
         entities.insert(player)
         primaryEntity = player
         
-        for (_, chunk) in chunks { chunk.remesh(); chunk.resort() }
+        chunks.values.forEach { $0.remesh(); $0.sort() }
     }
     
-    public func frame(input: Input, renderer: inout Image) {
+    public func frame(input: Input) {
         primaryEntity!.primaryUpdate(input: input)
+        
+        if primaryPosition.distance(to: sortedAt) > 1 {
+            chunks.values.forEach { $0.sort() }
+            sortedAt = primaryPosition
+        }
     }
     
     public var primaryPosition: Entity.Position { primaryEntity?.position ?? .zero }
     public var primaryOrientation: Entity.Orientation { primaryEntity?.orientation ?? .zero }
     
     public var unifiedMesh: [BlockVertex] {
-        chunks.values.reduce(into: []) { acc, el in acc.append(contentsOf: el.mesh)  }
+        chunks
+            .values
+            .sorted { lhs, rhs in
+                primaryEntity.position.distance(to: .init(x: Float(lhs.x), y: 0, z: Float(lhs.y))) >
+                primaryEntity.position.distance(to: .init(x: Float(rhs.x), y: 0, z: Float(rhs.y)))
+            }
+            .reduce(into: []) { acc, chunk in acc.append(contentsOf: chunk.mesh) }
     }
     
     public func primaryMatrix(width: Float, height: Float) -> Matrix4x4<Float> {
@@ -100,6 +111,20 @@ public final class World {
             .rotated(axis: .yaw, angle: primaryEntity.orientation.yaw)
             .rotated(axis: .pitch, angle: primaryEntity.orientation.pitch)
             .projected(width: width, height: height, fov: 80, near: 0.1, far: 1000)
+    }
+    
+    public func isOpaqueAt(x: Int, y: Int, z: Int) -> Bool {
+        let cx = Int((Float(x) / Float(Chunk.side)).rounded(.down))
+        let cy = Int((Float(z) / Float(Chunk.side)).rounded(.down))
+        
+        let gx = ((x % Chunk.side) + Chunk.side) % Chunk.side
+        let gy = y
+        let gz = ((z % Chunk.side) + Chunk.side) % Chunk.side
+        
+        guard let chunk = chunks[.init(x: cx, y: cy)] else { return true }
+        guard chunk.isGenerated else { return true }
+        guard case let .success(block) = chunk[gx, gy, gz] else { return true }
+        return block.offsets != nil // TODO(!): Transparency
     }
 }
 
@@ -132,7 +157,7 @@ public final class Chunk {
         for x in 0..<Self.side {
             for z in 0..<Self.side {
                 for y in 0..<Self.height {
-                    if y < 128 { self[x, y, z] = .stone }
+                    if y < .random(in: 126...128) { self[x, y, z] = .stone }
                 }
             }
         }
@@ -157,7 +182,7 @@ public final class Chunk {
             for z in 0..<Self.side {
                 for y in 0..<Self.height {
                     self[x, y, z].mesh(
-                        faces: .all,
+                        faces: facesFor(x: x, y: y, z: z), // TODO(!!!!!)
                         x: Float(x) + chunkOffsetX,
                         y: Float(y),
                         z: Float(z) + chunkOffsetZ,
@@ -173,9 +198,8 @@ public final class Chunk {
     /// Sorts the vertices in the background.
     ///
     /// It is intended to re-sort already mostly sorted vertices, must not take too long.
-    public func resort() {
+    public func sort() {
         typealias TriVertex = (BlockVertex, BlockVertex, BlockVertex)
-//        guard blocks.count.isMultiple(of: 3) else { return }
         var buffer = mesh
         
         precondition(buffer.count.isMultiple(of: 3))
@@ -195,6 +219,21 @@ public final class Chunk {
         mesh = buffer
     }
     
+    public func facesFor(x: Int, y: Int, z: Int) -> Block.MeshFaces {
+        let gx = x + self.x * Chunk.side
+        let gy = y
+        let gz = z + self.y * Chunk.side
+        
+        var faces = Block.MeshFaces()
+        if !world.isOpaqueAt(x: gx,     y: gy,     z: gz + 1) { faces.insert(.north) }
+        if !world.isOpaqueAt(x: gx,     y: gy,     z: gz - 1) { faces.insert(.south) }
+        if !world.isOpaqueAt(x: gx + 1, y: gy,     z: gz    ) { faces.insert(.east) }
+        if !world.isOpaqueAt(x: gx - 1, y: gy,     z: gz    ) { faces.insert(.west) }
+        if !world.isOpaqueAt(x: gx,     y: gy + 1, z: gz    ) { faces.insert(.up) }
+        if !world.isOpaqueAt(x: gx,     y: gy - 1, z: gz    ) { faces.insert(.down) }
+        return faces
+    }
+    
     public subscript(x: Int, y: Int, z: Int) -> Block {
         get { blocks[(x * Self.side * Self.height) + (y * Self.side) + z] }
         set { blocks[(x * Self.side * Self.height) + (y * Self.side) + z] = newValue }
@@ -202,13 +241,17 @@ public final class Chunk {
     
     @_disfavoredOverload
     public subscript(x: Int, y: Int, z: Int) -> Result<Block, AccessError> {
-        get { fatalError() }
-        set { fatalError() }
+        get {
+            guard x >= 0 && x < Chunk.side else { return .failure(.outOfBounds) }
+            guard y >= 0 && y < Chunk.height else { return .failure(.outOfBounds) }
+            guard z >= 0 && z < Chunk.side else { return .failure(.outOfBounds) }
+            return .success(self[x, y, z])
+        }
     }
     
     public enum AccessError: Error, Hashable, BitwiseCopyable {
         case notGenerated
-        case outOfBounds(Direction)
+        case outOfBounds
     }
     
     public struct Position: Hashable, Sendable, BitwiseCopyable {
@@ -381,12 +424,13 @@ public class Entity {
     
     public func primaryUpdate(input: Input) {
         self.orientation.yaw += 0.1
+        self.position.x += 0.01
     }
     
     public typealias Position = Vector3<Float>
     
     /// A specialized vector of floats with wrapping behavior.
-    public struct Orientation: Hashable {
+    public struct Orientation: Hashable, Sendable, BitwiseCopyable {
         public var pitch, yaw, roll: Float
         
         public static var zero: Self { .init(pitch: 0, yaw: 0, roll: 0) }

@@ -8,6 +8,7 @@ public protocol FloatingPointMath: FloatingPoint, Fractional, ExpressibleByFloat
     var cos: Self { get }
     var tan: Self { get }
     var sqrt: Self { get }
+    func pow(_ n: Self) -> Self
 }
 
 public extension FloatingPointMath {
@@ -30,6 +31,8 @@ extension Float32: FloatingPointMath {
     @_transparent
     public var tan: Self { self.sin / self.cos }
     #endif
+    @_transparent
+    public func pow(_ n: Self) -> Self { Self(Builtin.int_pow_FPIEEE32(self._value, n._value)) }
 }
 
 extension Float64: FloatingPointMath {
@@ -47,6 +50,17 @@ extension Float64: FloatingPointMath {
     @_transparent
     public var tan: Self { self.sin / self.cos }
     #endif
+    
+    @_transparent
+    public func pow(_ n: Self) -> Self { Self(Builtin.int_pow_FPIEEE64(self._value, n._value)) }
+}
+
+public extension Float32 {
+    
+}
+
+public extension Float64 {
+    
 }
 
 // MARK: - Normalization
@@ -203,12 +217,14 @@ public extension Vector3 where T: AdditiveArithmetic {
     static var zero: Self { .init(x: .zero, y: .zero, z: .zero) }
 }
 
+public extension Vector3 where T: FloatingPointMath {
+    func pow(_ n: T) -> Self { .init(x: x.pow(n), y: y.pow(n), z: z.pow(n)) }
+    
+    func distance(to other: Self) -> T { ((x - other.x).pow(2) + (y - other.y).pow(2) + (z - other.z).pow(2)).sqrt }
+}
+    
 public extension Vector3 {
     func reduce(_ op: (T, T) -> T) -> T { op(op(x, y), z) }
-    
-//    func distance(to other: Self) -> T {
-//
-//    }
 }
 
 extension Vector3: Equatable where T: Equatable {}
@@ -268,7 +284,7 @@ public func triCompare<T: FloatingPointMath>(_ lhs: Tri<T>, _ rhs: Tri<T>, to po
 
 public func triDistance<T: FloatingPointMath>(of tri: Tri<T>, to position: Vector3<T>) -> T {
     let average = (tri.0 + tri.1 + tri.2) / .init(x: 3, y: 3, z: 3)
-    return (average - position).reduce(+).sqrt
+    return (average - position).pow(2).reduce(+).sqrt
 }
 
 // MARK: - Matrices
