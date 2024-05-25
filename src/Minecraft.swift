@@ -70,8 +70,8 @@ public final class World {
         self.name = name
         self.seed = seed
         
-        for x in -2...2 {
-            for y in -2...2 {
+        for x in -6...6 {
+            for y in -6...6 {
                 chunks[.init(x: x, y: y)] = Chunk(self, x: x, y: y)
             }
         }

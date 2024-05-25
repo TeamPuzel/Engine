@@ -57,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let main = NSMenuItem()
         main.submenu = NSMenu()
         main.submenu!.items = [
-            NSMenuItem(title: "Quit Minecraft", action: #selector(window.toggleFullScreen(_:)), keyEquivalent: "f"), // TODO(!): Wrong shortcut
+            NSMenuItem(title: "Enter Full Screen", action: #selector(window.toggleFullScreen(_:)), keyEquivalent: "f"), // TODO(!): Wrong shortcut
             NSMenuItem(title: "Quit Minecraft", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         ]
         menu.addItem(main)

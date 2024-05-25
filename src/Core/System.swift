@@ -157,3 +157,30 @@ public struct BufferedTimer: ~Copyable {
         return elapsed
     }
 }
+
+// MARK: - Logging
+
+@MainActor
+public func log(_ message: String, level: LogLevel = .normal) { logImpl(message, level: level) }
+
+public enum LogLevel: Sendable, BitwiseCopyable { case normal, warning, error }
+
+#if canImport(os)
+import struct os.Logger
+import struct os.OSLogMessage
+
+@MainActor
+fileprivate let globalLog = Logger()
+
+@MainActor
+@_transparent
+fileprivate func logImpl(_ message: String, level: LogLevel) {
+    switch level {
+        case .normal:  globalLog.log("\(message)")
+        case .warning: globalLog.warning("\(message)")
+        case .error:   globalLog.error("\(message)")
+    }
+}
+#else
+fileprivate func logImpl(_ message: String, level: LogLevel) {}
+#endif
