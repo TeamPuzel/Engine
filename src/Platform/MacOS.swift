@@ -179,6 +179,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 final class Renderer: NSObject, MTKViewDelegate {
     private unowned let parent: AppDelegate
     
+    private var device: (any MTLDevice)!
+    
     private var commandQueue: (any MTLCommandQueue)!
     
     private var shaderLibrary: (any MTLLibrary)!
@@ -200,6 +202,7 @@ final class Renderer: NSObject, MTKViewDelegate {
     
     init(_ parent: AppDelegate, device: any MTLDevice) {
         self.parent = parent
+        self.device = device
         super.init()
         commandQueue = device.makeCommandQueue()
         createShaderLibrary(device: device)
@@ -382,8 +385,20 @@ final class Renderer: NSObject, MTKViewDelegate {
         )
     }
     
-    // CALLED OFTEN
     func createTerrainVertexBuffer(device: any MTLDevice) {
+        let vertices = parent.metalViewDelegateRequiresMeshToDraw()
+        self.terrainVertexCount = vertices.count
+        guard terrainVertexCount > 0 else { return }
+        
+        self.terrainVertexBuffer = device.makeBuffer(
+            bytes: vertices,
+            length: MemoryLayout<BlockVertex>.stride * vertices.count,
+            options: []
+        )
+    }
+    
+    // TODO(!): Resize when needing more vertices, don't just reallocate it every single time
+    func updateTerrainVertexBuffer() {
         let vertices = parent.metalViewDelegateRequiresMeshToDraw()
         self.terrainVertexCount = vertices.count
         guard terrainVertexCount > 0 else { return }
@@ -406,6 +421,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         MainActor.assumeIsolated {
             parent.metalViewDelegateWillDrawFrame()
             updateInterfaceTexture()
+            updateTerrainVertexBuffer()
             
             guard let drawable = view.currentDrawable else { return }
             guard let renderPassDescriptor = view.currentRenderPassDescriptor else { return }
